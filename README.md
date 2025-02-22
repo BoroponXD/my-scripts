@@ -9,7 +9,7 @@ Firstly, go to the telegram and find "BotFather" and type: "/newbot".
 U need to name your bot, then you'll get the token (don't share to anyone).
 When u made a Telegram bot, go to him and type "/start" (it won't work without it).
 Also you need to get your Telegram ID (necessary). 
-Go to this site: https://api.telegram.org/bot <TOKEN> /getUpdates 
+Go to this site: https://api.telegram.org/bot"TOKEN"/getUpdates 
 (change "<TOKEN>" to your bot token, it shall look like this: 
 https://api.telegram.org/bot1234567890:XXXX/getUpdates)
 Well, when you're there, you're gonna get sum like this:
