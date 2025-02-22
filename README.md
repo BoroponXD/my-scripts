@@ -36,6 +36,7 @@ npm install axios
 Then go to your folder again and create there sum like "SendStats.js".
 Now we need to paste there a script that will send us the stats. (Recommended to edit with Notepad++ : https://notepad-plus-plus.org/ )
 Open the file "SendStats.js" to edit it and paste there this script (made by me):
+
 (YOU HAVE TO CHANGE "YOUR ID" AND "YOUR TOKEN" THERE)
 
 https://github.com/BoroponXD/my-scripts/blob/main/telegram-stats-bot
