@@ -1,0 +1,700 @@
+--AutoCollect Items Script (First Release)
+--Here's 3 Function only
+local cloneref = cloneref or function(o) return o end
+COREGUI = cloneref(game:GetService("CoreGui"))
+Players = cloneref(game:GetService("Players"))
+PlaceId, JobId = game.PlaceId, game.JobId
+local TeleportService = game:GetService("TeleportService")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+local HttpService = game:GetService("HttpService")
+local Stats = PlayerGui and PlayerGui:FindFirstChild("Stats")
+local Main = Stats and Stats:FindFirstChild("Main")
+local EventLabel = Main and Main:FindFirstChild("Event")
+
+_G.Settings = {
+    Gem = true,
+    lucky_potion = true,
+    speed_potion = true,
+    ultimate_potion = true
+}
+
+local zonesModel = game.Workspace:FindFirstChild("Game") and game.Workspace.Game:FindFirstChild("Zones")
+
+if zonesModel then
+    zonesModel:Destroy()
+end
+
+if playerGui then
+    local interface = playerGui:FindFirstChild("Interface")
+    if interface then
+        local framesToRemove = {"BlackMarket", "Crafting", "LikeRewards"}
+        
+        for _, frameName in ipairs(framesToRemove) do
+            local frame = interface:FindFirstChild(frameName)
+            if frame then
+                frame:Destroy()
+                print("Deleted Frame: " .. frameName)
+            end
+        end
+    else
+        warn("InterFace not found in PlayerGui")
+    end
+else
+    warn("PlayerGui haven't found")
+end
+
+local function saveSettings()
+    if writefile then
+        local settings = {
+            AutoCollect_Enabled = _G.AutoCollect_Enabled,
+            AutoFly_Enabled = _G.AutoFly_Enabled,
+            Noclip_Enabled = _G.Noclip_Enabled,
+            AutoRejoin_Enabled = _G.AutoRejoin_Enabled,
+            Settings = _G.Settings
+        }
+        local encodedSettings = game:GetService("HttpService"):JSONEncode(settings)
+        writefile("autocollect_settings.json", encodedSettings)
+    end
+end
+
+local player = game.Players.LocalPlayer
+local spawnPosition = player.Character.HumanoidRootPart.Position
+
+local function checkPlayerPosition()
+    while true do
+        wait(1)
+
+        local currentPosition = player.Character.HumanoidRootPart.Position
+        local distance = (currentPosition - spawnPosition).Magnitude
+        local heightDifference = currentPosition.Y - spawnPosition.Y
+
+        if heightDifference > 150 and _G.AutoRejoin_Enabled then
+            if #Players:GetPlayers() <= 1 then
+                Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
+                wait(0.1)
+                TeleportService:Teleport(PlaceId, Players.LocalPlayer)
+            else
+                TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
+            end
+        end
+
+        if heightDifference < -8 and _G.AutoRejoin_Enabled then
+            if #Players:GetPlayers() <= 1 then
+                Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
+                wait(0.1)
+                TeleportService:Teleport(PlaceId, Players.LocalPlayer)
+            else
+                TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
+            end
+        end
+
+        if distance > 800 and _G.AutoRejoin_Enabled then
+            if #Players:GetPlayers() <= 1 then
+                Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
+                wait(0.1)
+                TeleportService:Teleport(PlaceId, Players.LocalPlayer)
+            else
+                TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
+            end
+        end
+    end
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = COREGUI
+
+-- Основной фрейм
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 300, 0, 450)
+Frame.Position = UDim2.new(0.5, 500, 0.5, -225)
+Frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+
+-- Добавляем закругленные углы для Frame
+local corner = Instance.new("UICorner", Frame)
+corner.CornerRadius = UDim.new(0, 20) -- регулируем степень закругления
+
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(0.8, 0, 0.1, 0)
+Title.Position = UDim2.new(0.1, 0, 0, 0)
+Title.Text = "Jule's RNG Script"
+Title.TextScaled = true
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.GothamBold
+
+local Credits = Instance.new("TextLabel", Frame)
+Credits.Size = UDim2.new(1, 0, 0.1, 0)
+Credits.Position = UDim2.new(0, 0, 0.085, 0)
+Credits.Text = "Credits: Boro\nFollow me on Roblox: BoroponXD"
+Credits.TextScaled = true
+Credits.TextColor3 = Color3.fromRGB(180, 180, 180)
+Credits.BackgroundTransparency = 1
+Credits.Font = Enum.Font.Gotham
+
+local Necessary = Instance.new("TextLabel", Frame)
+Necessary.Size = UDim2.new(1, 0, 0.1, 0)
+Necessary.Position = UDim2.new(0, 0, 0.61, 0)
+Necessary.Text = "\n|\nNecessary for AutoFly"
+Necessary.TextScaled = true
+Necessary.TextColor3 = Color3.fromRGB(200, 200, 200)
+Necessary.BackgroundTransparency = 1
+Necessary.Font = Enum.Font.SourceSansBold
+
+local No = Instance.new("TextLabel", Frame)
+No.Size = UDim2.new(1, 0, 0.1, 0)
+No.Position = UDim2.new(0, 0, 0.852, 0)
+No.Text = "Recommended using on Private Server\n\nSomething will be added here soon.."
+No.TextScaled = true
+No.TextColor3 = Color3.fromRGB(200, 200, 200)
+No.BackgroundTransparency = 1
+No.Font = Enum.Font.SourceSansBold
+
+-- Create AutoCollect Button
+local AutoCollectButton = Instance.new("TextButton", Frame)
+AutoCollectButton.Size = UDim2.new(0.65, 0, 0.1, 0)
+AutoCollectButton.Position = UDim2.new(0.1, 0, 0.32, 0)
+AutoCollectButton.Text = "AutoCollect: OFF"
+AutoCollectButton.TextColor3 = Color3.new(1, 1, 1)
+AutoCollectButton.BackgroundTransparency = 0.6
+AutoCollectButton.BorderSizePixel = 0
+
+local UICornerButton = Instance.new("UICorner", AutoCollectButton)
+UICornerButton.CornerRadius = UDim.new(0, 8)
+
+AutoCollectButton.MouseButton1Click:Connect(function()
+    _G.AutoCollect_Enabled = not _G.AutoCollect_Enabled
+    AutoCollectButton.Text = "AutoCollect: " .. (_G.AutoCollect_Enabled and "ON" or "OFF")
+    AutoCollectButton.BackgroundColor3 = _G.AutoCollect_Enabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+    saveSettings()
+end)
+
+-- Create AutoFly Button
+local AutoFlyButton = Instance.new("TextButton", Frame)
+AutoFlyButton.Size = UDim2.new(0.8, 0, 0.1, 0)
+AutoFlyButton.Position = UDim2.new(0.1, 0, 0.429, 0)
+AutoFlyButton.Text = "AutoFly: OFF"
+AutoFlyButton.TextColor3 = Color3.new(1, 1, 1)
+AutoFlyButton.BackgroundTransparency = 0.6
+AutoFlyButton.BorderSizePixel = 0
+
+local UICornerButton = Instance.new("UICorner", AutoFlyButton)
+UICornerButton.CornerRadius = UDim.new(0, 8)
+
+AutoFlyButton.MouseButton1Click:Connect(function()
+    _G.AutoFly_Enabled = not _G.AutoFly_Enabled
+    AutoFlyButton.Text = "AutoFly: " .. (_G.AutoFly_Enabled and "ON" or "OFF")
+    AutoFlyButton.BackgroundColor3 = _G.AutoFly_Enabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+    saveSettings()
+end)
+
+-- Create Noclip Button
+local NoclipButton = Instance.new("TextButton", Frame)
+NoclipButton.Size = UDim2.new(0.8, 0, 0.1, 0)
+NoclipButton.Position = UDim2.new(0.1, 0, 0.537, 0)
+NoclipButton.Text = "Noclip: OFF"
+NoclipButton.TextColor3 = Color3.new(1, 1, 1)
+NoclipButton.BackgroundTransparency = 0.6
+NoclipButton.BorderSizePixel = 0
+
+local UICornerButton = Instance.new("UICorner", NoclipButton)
+UICornerButton.CornerRadius = UDim.new(0, 8)
+
+NoclipButton.MouseButton1Click:Connect(function()
+    _G.Noclip_Enabled = not _G.Noclip_Enabled
+    NoclipButton.Text = "Noclip: " .. (_G.Noclip_Enabled and "ON" or "OFF")
+    NoclipButton.BackgroundColor3 = _G.Noclip_Enabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+    saveSettings()
+end)
+
+-- Create AutoRejoin Button
+local AutoRejoinButton = Instance.new("TextButton", Frame)
+AutoRejoinButton.Size = UDim2.new(0.8, 0, 0.1, 0)
+AutoRejoinButton.Position = UDim2.new(0.1, 0, 0.72, 0)
+AutoRejoinButton.Text = "AutoRejoin: OFF"
+AutoRejoinButton.TextColor3 = Color3.new(1, 1, 1)
+AutoRejoinButton.BackgroundTransparency = 0.6
+AutoRejoinButton.BorderSizePixel = 0
+
+local UICornerButton = Instance.new("UICorner", AutoRejoinButton)
+UICornerButton.CornerRadius = UDim.new(0, 8)
+
+AutoRejoinButton.MouseButton1Click:Connect(function()
+    _G.AutoRejoin_Enabled = not _G.AutoRejoin_Enabled
+    AutoRejoinButton.Text = "AutoRejoin: " .. (_G.AutoRejoin_Enabled and "ON" or "OFF")
+    AutoRejoinButton.BackgroundColor3 = _G.AutoRejoin_Enabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+    saveSettings()
+end)
+
+-- Create Toggle All Button
+local AllFunctionsButton = Instance.new("TextButton", Frame)
+AllFunctionsButton.Size = UDim2.new(0.8, 0, 0.1, 0)
+AllFunctionsButton.Position = UDim2.new(0.1, 0, 0.2, 0)
+AllFunctionsButton.Text = "Toggle All"
+AllFunctionsButton.TextColor3 = Color3.new(1, 1, 1)
+AllFunctionsButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+AllFunctionsButton.BackgroundTransparency = 0.2
+AllFunctionsButton.BorderSizePixel = 0
+
+local UICornerButton = Instance.new("UICorner", AllFunctionsButton)
+UICornerButton.CornerRadius = UDim.new(0, 8)
+
+AllFunctionsButton.MouseButton1Click:Connect(function()
+    local newState = not (_G.AutoCollect_Enabled or _G.AutoFly_Enabled or _G.Noclip_Enabled)
+
+    _G.AutoCollect_Enabled = newState
+    _G.AutoFly_Enabled = newState
+    _G.Noclip_Enabled = newState
+    _G.AutoRejoin_Enabled = newState
+
+    AutoCollectButton.Text = "AutoCollect: " .. (newState and "ON" or "OFF")
+    AutoFlyButton.Text = "AutoFly: " .. (newState and "ON" or "OFF")
+    NoclipButton.Text = "Noclip: " .. (newState and "ON" or "OFF")
+    AutoRejoinButton.Text = "AutoRejoin: " .. (newState and "ON" or "OFF")
+    AllFunctionsButton.Text = "Toggle All"
+
+    AutoCollectButton.BackgroundColor3 = newState and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+    AutoFlyButton.BackgroundColor3 = newState and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+    NoclipButton.BackgroundColor3 = newState and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+    AutoRejoinButton.BackgroundColor3 = newState and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+
+    saveSettings()
+end)
+
+local function updateButtonTexts()
+    AutoCollectButton.Text = "AutoCollect: " .. (_G.AutoCollect_Enabled and "ON" or "OFF")
+    AutoFlyButton.Text = "AutoFly: " .. (_G.AutoFly_Enabled and "ON" or "OFF")
+    NoclipButton.Text = "Noclip: " .. (_G.Noclip_Enabled and "ON" or "OFF")
+    AutoRejoinButton.Text = "AutoRejoin: " .. (_G.AutoRejoin_Enabled and "ON" or "OFF")
+    AllFunctionsButton.Text = "Toggle All"
+end
+
+local function loadSettings()
+    if readfile and isfile("autocollect_settings.json") then
+        local settingsData = readfile("autocollect_settings.json")
+        local settings = game:GetService("HttpService"):JSONDecode(settingsData)
+        
+        _G.AutoCollect_Enabled = settings.AutoCollect_Enabled or false
+        _G.AutoFly_Enabled = settings.AutoFly_Enabled or false
+        _G.Noclip_Enabled = settings.Noclip_Enabled or false
+        _G.AutoRejoin_Enabled = settings.AutoRejoin_Enabled or false
+        _G.Settings = settings.Settings or _G.Settings
+    end
+
+    updateButtonTexts()
+    AutoCollectButton.BackgroundColor3 = _G.AutoCollect_Enabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+    AutoFlyButton.BackgroundColor3 = _G.AutoFly_Enabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+    NoclipButton.BackgroundColor3 = _G.Noclip_Enabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+    AutoRejoinButton.BackgroundColor3 = _G.AutoRejoin_Enabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+end
+
+loadSettings()
+
+local settings = {
+    Gem = true,
+    lucky_potion = true,
+    speed_potion = true,
+    ultimate_potion = true
+}
+
+local function saveSettings()
+    if writefile then
+        local encodedSettings = game:GetService("HttpService"):JSONEncode(settings)
+        writefile("autocollect_items_settings.json", encodedSettings)
+    end
+end
+
+local function loadSettings()
+    if readfile and isfile("autocollect_items_settings.json") then
+        local data = readfile("autocollect_items_settings.json")
+        local decoded = game:GetService("HttpService"):JSONDecode(data)
+        for k, v in pairs(decoded) do
+            settings[k] = v
+        end
+    end
+end
+
+loadSettings()
+
+local SettingsButton = Instance.new("TextButton", Frame)
+SettingsButton.Size = UDim2.new(0.115, 0, 0.09, 0)
+SettingsButton.Position = UDim2.new(0.78, 0, 0.324, 0)
+SettingsButton.Text = "⚙"
+SettingsButton.TextScaled = false
+SettingsButton.TextColor3 = Color3.new(1, 1, 1)
+SettingsButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+SettingsButton.BackgroundTransparency = 0
+SettingsButton.BorderSizePixel = 2
+
+local UICornerButton = Instance.new("UICorner", SettingsButton)
+UICornerButton.CornerRadius = UDim.new(0, 8)
+
+local SettingsFrame = Instance.new("Frame", ScreenGui)
+SettingsFrame.Size = UDim2.new(0, 150, 0, 125)
+SettingsFrame.Position = UDim2.new(0.499, Frame.Position.X.Offset + Frame.Size.X.Offset + 1, 0.6, Frame.Position.Y.Offset)
+SettingsFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+SettingsFrame.BackgroundTransparency = 0
+SettingsFrame.BorderSizePixel = 0
+SettingsFrame.Visible = false
+
+local UICornerButton = Instance.new("UICorner", SettingsFrame)
+corner.CornerRadius = UDim.new(0, 8)
+
+local Ye = Instance.new("TextLabel", SettingsFrame)
+Ye.Size = UDim2.new(1, 0, 0.1, 0)
+Ye.Position = UDim2.new(0, 0, 0, 0)
+Ye.Text = "AutoCollect Settings"
+Ye.TextScaled = true
+Ye.TextColor3 = Color3.new(1, 1, 1)
+Ye.BackgroundTransparency = 1
+Ye.Font = Enum.Font.SourceSansBold
+
+local function createToggleButton(parent, text, settingKey, posY)
+    local button = Instance.new("TextButton", parent)
+    button.Size = UDim2.new(0.8, 0, 0.15, 0)
+    button.Position = UDim2.new(0.1, 0, posY, 0)
+    button.Text = text .. ": " .. (settings[settingKey] and "Collect" or "Ignore")
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.BackgroundColor3 = settings[settingKey] and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+    button.BackgroundTransparency = 0.6
+    button.BorderSizePixel = 2
+
+	local UICornerButton = Instance.new("UICorner", button)
+    UICornerButton.CornerRadius = UDim.new(0, 8)
+
+    
+    button.MouseButton1Click:Connect(function()
+        settings[settingKey] = not settings[settingKey]
+        button.Text = text .. ": " .. (settings[settingKey] and "Collect" or "Ignore")
+        
+        button.BackgroundColor3 = settings[settingKey] and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+        
+        saveSettings()
+    end)
+end
+
+createToggleButton(SettingsFrame, "Gem", "Gem", 0.15)
+createToggleButton(SettingsFrame, "Lucky Potion", "lucky_potion", 0.34)
+createToggleButton(SettingsFrame, "Speed Potion", "speed_potion", 0.53)
+createToggleButton(SettingsFrame, "Ultimate Potion", "ultimate_potion", 0.72)
+
+SettingsButton.MouseButton1Click:Connect(function()
+    SettingsFrame.Visible = not SettingsFrame.Visible
+end)
+
+Frame:GetPropertyChangedSignal("Position"):Connect(function()
+    SettingsFrame.Position = UDim2.new(0.5, Frame.Position.X.Offset + Frame.Size.X.Offset + 1, 0.6, Frame.Position.Y.Offset)
+end)
+
+Frame:GetPropertyChangedSignal("Size"):Connect(function()
+    SettingsFrame.Size = UDim2.new(0, 200, 0, Frame.Size.Y.Offset)
+end)
+
+local lastRejoinAttempt = 0
+local cooldown = 10
+
+local function displayNotification(message)
+    local ScreenGui = LocalPlayer:WaitForChild("PlayerGui"):FindFirstChild("NotificationGui")
+    if not ScreenGui then
+        ScreenGui = Instance.new("ScreenGui")
+        ScreenGui.Name = "NotificationGui"
+        ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    end
+
+    local Notification = Instance.new("TextLabel")
+    Notification.Size = UDim2.new(0, 300, 0, 50)
+    Notification.Position = UDim2.new(0.8, -310, 0, 100)
+    Notification.Text = message
+    Notification.TextColor3 = Color3.new(1, 1, 1)
+    Notification.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    Notification.BackgroundTransparency = 0.5
+    Notification.TextSize = 20
+    Notification.TextScaled = true
+    Notification.BorderSizePixel = 2
+    Notification.Parent = ScreenGui
+
+    task.wait(0.8)
+    Notification:TweenPosition(UDim2.new(0.8, -310, 0, 100), "Out", "Sine", 0.5, true, function()
+        Notification:Destroy()
+    end)
+end
+
+local function checkPotionsAndRejoin()
+    while true do
+        task.wait(1)
+
+        local potionsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Potions")
+        if potionsFolder then
+            local missing = true
+            for potion, enabled in pairs(settings) do
+                if enabled and potionsFolder:FindFirstChild(potion) then
+                    missing = false
+                    break
+                end
+            end
+
+            if missing and _G.AutoRejoin_Enabled then
+                displayNotification("No Items found!")
+                wait(1)
+                local countdown = 3
+                
+                while countdown > 0 and _G.AutoRejoin_Enabled do
+                    displayNotification("Rejoin in " .. countdown .. "...")
+                    countdown = countdown - 1
+                    task.wait(0.8)
+                end
+
+                if not _G.AutoRejoin_Enabled then
+                    displayNotification("AutoRejoin is OFF")
+                    task.wait(1)
+                    continue
+                end
+
+                if tick() - lastRejoinAttempt >= cooldown and _G.AutoRejoin_Enabled then
+                    if #Players:GetPlayers() <= 1 then
+                        Players.LocalPlayer:Kick("\nRejoining...")
+                        wait(0.1)
+                        TeleportService:Teleport(PlaceId, Players.LocalPlayer)
+                    else
+                        TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
+                    end
+                    lastRejoinAttempt = tick()
+                end
+            end
+        end
+    end
+end
+
+spawn(checkPotionsAndRejoin)
+
+game:GetService("RunService").Stepped:Connect(function()
+    if _G.Noclip_Enabled then
+        for _, part in pairs(Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+local function autoActivatePrompt()
+    while true do
+        task.wait(0.000001)
+        if _G.AutoCollect_Enabled then
+            for _, prompt in ipairs(workspace:GetDescendants()) do
+                if prompt:IsA("ProximityPrompt") and prompt.Enabled then
+                    prompt:InputHoldBegin()
+                    task.wait(0.000001)
+                    prompt:InputHoldEnd()
+                end
+            end
+        end
+    end
+end
+
+local function autoFlyToObject() 
+    local lastDirection = nil
+    local lastTime = tick()
+
+    -- Функция для перезапуска
+    local function restartFunction()
+        lastDirection = nil
+        lastTime = tick() -- Обновляем время для перезапуска
+    end
+
+    while true do
+        task.wait(0.1)
+        
+        if _G.AutoFly_Enabled then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
+                local currentDirection = hrp.Velocity.unit
+
+                -- Проверяем, если направление изменилось
+                if lastDirection and (currentDirection - lastDirection).Magnitude > 0.1 then
+                    lastTime = tick()  -- Сбрасываем таймер, если направление изменилось
+                end
+                
+                lastDirection = currentDirection
+
+                -- Если направление не меняется в течение 10 секунд, перезапускаем
+                if tick() - lastTime >= 10 then
+                    restartFunction()  -- Перезапускаем функцию, если нет изменений в направлении
+                end
+            end
+
+            local trackedNames = {}
+            for name, enabled in pairs(settings) do
+                if enabled then
+                    table.insert(trackedNames, name)
+                end
+            end
+            
+            local nearestObj = nil
+            local nearestDist = math.huge
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("Model") and table.find(trackedNames, obj.Name) then
+                    local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                    if part then
+                        local dist = (LocalPlayer.Character.HumanoidRootPart.Position - part.Position).Magnitude
+                        if dist < nearestDist then
+						    wait(0.1)
+                            nearestDist = dist
+                            nearestObj = part
+                        end
+                    end
+                end
+            end
+            
+            if nearestObj then
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local hrp = char.HumanoidRootPart
+                    local targetPos = nearestObj.Position + Vector3.new(0, 2, 0)
+                    local direction = (targetPos - hrp.Position).unit
+                    local speed = 130
+                    
+                    local bodyVelocity = Instance.new("BodyVelocity")
+                    bodyVelocity.Velocity = direction * speed
+                    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                    bodyVelocity.Parent = hrp
+                    
+                    while (hrp.Position - targetPos).Magnitude > 3 and _G.AutoFly_Enabled do
+                        task.wait()
+                    end
+                    
+                    bodyVelocity:Destroy()
+                end
+            end
+        end
+    end
+end
+
+task.spawn(autoActivatePrompt)
+task.spawn(autoFlyToObject)
+task.spawn(checkPlayerPosition)
+
+wait(10)
+
+local HttpService = game:GetService("HttpService")
+local LocalPlayer = game.Players.LocalPlayer
+local PlayerGui = LocalPlayer:FindFirstChild("PlayerGui")
+
+local function openInventory()
+    local interface = PlayerGui:FindFirstChild("Interface")
+    if interface then
+        local inventoryFrame = interface:FindFirstChild("Inventory")
+        if inventoryFrame then
+            inventoryFrame.Visible = true
+        end
+    end
+end
+
+local function closeInventory()
+    local interface = PlayerGui:FindFirstChild("Interface")
+    if interface then
+        local inventoryFrame = interface:FindFirstChild("Inventory")
+        if inventoryFrame then
+            inventoryFrame.Visible = false
+        end
+    end
+end
+
+local function getInventoryStats()
+    local stats = {
+        ultimate_potion = 0,
+        lucky_potion = 0,
+        speed_potion = 0,
+        gems = 0
+    }
+
+    openInventory()
+
+    wait(1)
+
+    if PlayerGui then
+        local interface = PlayerGui:FindFirstChild("Interface")
+        if interface then
+            local inventory = interface:FindFirstChild("Inventory")
+            if inventory then
+                local main = inventory:FindFirstChild("Main")
+                if main then
+                    local scrollingFrame = main:FindFirstChild("ScrollingFrame")
+                    if scrollingFrame then
+                        local ultimatePotion = scrollingFrame:FindFirstChild("ultimate_potion")
+                        if ultimatePotion then
+                            local amountText = ultimatePotion:FindFirstChild("Button"):FindFirstChild("Amount"):FindFirstChild("AmountText")
+                            if amountText then
+                                stats.ultimate_potion = tonumber(amountText.Text) or 0
+                            end
+                        end
+
+                        local luckyPotion = scrollingFrame:FindFirstChild("luck_potion")
+                        if luckyPotion then
+                            local amountText = luckyPotion:FindFirstChild("Button"):FindFirstChild("Amount"):FindFirstChild("AmountText")
+                            if amountText then
+                                stats.lucky_potion = tonumber(amountText.Text) or 0
+                            end
+                        end
+
+                        local speedPotion = scrollingFrame:FindFirstChild("speed_potion")
+                        if speedPotion then
+                            local amountText = speedPotion:FindFirstChild("Button"):FindFirstChild("Amount"):FindFirstChild("AmountText")
+                            if amountText then
+                                stats.speed_potion = tonumber(amountText.Text) or 0
+                            end
+                        end
+                    end
+                end
+            end
+
+            local hud = interface:FindFirstChild("HUD")
+            if hud then
+                print("HUD found!")
+                local diamondsFrame = hud:FindFirstChild("Diamonds")
+                if diamondsFrame then
+                    print("Diamonds found!")
+                    local amountLabel = diamondsFrame:FindFirstChild("Amount")
+                    if amountLabel and amountLabel:IsA("TextLabel") then
+                        print("Amount.Text: " .. amountLabel.Text)
+                        local formattedText = string.gsub(amountLabel.Text, ",", ".")
+                        local gemsValue = tonumber(formattedText)
+                        if gemsValue then
+                            stats.gems = gemsValue
+                            print("Gems: " .. gemsValue)
+                        else
+                            print("Error while trying to rewrite! Text: " .. formattedText)
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    print("Got stats:")
+    print("Ultimate Potion: " .. stats.ultimate_potion)
+    print("Lucky Potion: " .. stats.lucky_potion)
+    print("Speed Potion: " .. stats.speed_potion)
+    print("Gems: " .. stats.gems)
+
+    closeInventory()
+
+    return stats
+end
+
+local function saveStatsToFile()
+    local stats = getInventoryStats()
+    local encodedStats = HttpService:JSONEncode(stats)
+
+    print("JSON-data to write:")
+    print(encodedStats)
+
+    writefile("stats.json", encodedStats)
+end
+
+saveStatsToFile()
