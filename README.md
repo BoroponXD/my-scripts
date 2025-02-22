@@ -21,7 +21,7 @@ Here u need <"from":{"id":XXXXXXXX> or <"chat":{"id":XXXXXXXX>.
 Well, when u get your Telegram ID and your bot token,
 u need to go to the folder where your stats saving 
 (NOT ALL EXECUTORS SUPPORT "writefile", SO IT CANNOT WORK WITH SOME EXECUTORS)
-(im using Xeno, so for me it's C:\Users\MYUSER\Desktop\Xeno\workspace, but for you may be other).
+im using Xeno, so for me it's C:\Users\MYUSER\Desktop\Xeno\workspace, but for you may be other.
 
 Oh! Almost forgot about u need to download node.js : https://nodejs.org/en
 
