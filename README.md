@@ -30,6 +30,7 @@ Just open cmd and there type <cd C:"your-folder-path">.
 When you opened cmd in the folder(and installed node.js), type:
 
 npm init -y
+
 npm install axios
 
 Then go to your folder again and create there sum like "SendStats.js".
