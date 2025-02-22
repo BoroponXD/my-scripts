@@ -26,7 +26,7 @@ im using Xeno, so for me it's C:\Users\MYUSER\Desktop\Xeno\workspace, but for yo
 Oh! Almost forgot about u need to download node.js : https://nodejs.org/en
 
 Well, when u find your folder, where your stats saving, u need to open CMD here.
-just open cmd and there type <cd C:"your-folder-path">.
+Just open cmd and there type <cd C:"your-folder-path">.
 When you opened cmd in the folder(and installed node.js), type:
 
 npm init -y
