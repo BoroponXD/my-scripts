@@ -22,7 +22,7 @@ if not game:IsLoaded() then
     msg:Destroy()
 end
 
-local SCRIPT_URL = "https://raw.githubusercontent.com/BoroponXD/Roblox-Script/refs/heads/main/Jule's%20private%20handler"
+local SCRIPT_URL = "https://raw.githubusercontent.com/BoroponXD/my-scripts/refs/heads/main/Jule's%20main"
 
 local success, err = pcall(function()
     loadstring(game:HttpGet(SCRIPT_URL))()
