@@ -1,3 +1,5 @@
+wait(5)
+
 if _G.AUTO_COLLECT_LOADED and not _G.DEBUG_MODE then
     return
 end
