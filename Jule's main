@@ -444,7 +444,7 @@ local function checkPlayerPosition()
         if heightDifference > 150 and _G.AutoRejoin_Enabled then
             if #Players:GetPlayers() <= 1 then
                 Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
-                wait(1)
+                wait(0.1)
                 TeleportService:Teleport(PlaceId, Players.LocalPlayer)
             else
                 TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
@@ -454,7 +454,7 @@ local function checkPlayerPosition()
         if heightDifference < -8 and _G.AutoRejoin_Enabled then
             if #Players:GetPlayers() <= 1 then
                 Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
-                wait(1)
+                wait(0.1)
                 TeleportService:Teleport(PlaceId, Players.LocalPlayer)
             else
                 TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
@@ -464,7 +464,7 @@ local function checkPlayerPosition()
         if distance > 800 and _G.AutoRejoin_Enabled then
             if #Players:GetPlayers() <= 1 then
                 Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
-                wait(1)
+                wait(0.1)
                 TeleportService:Teleport(PlaceId, Players.LocalPlayer)
             else
                 TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
