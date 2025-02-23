@@ -415,10 +415,9 @@ local function checkPotionsAndRejoin()
                 if tick() - lastRejoinAttempt >= cooldown and _G.AutoRejoin_Enabled then
                     if #Players:GetPlayers() <= 1 then
                         Players.LocalPlayer:Kick("\nRejoining...")
-                        wait(1)
-			            TeleportService:Teleport(PlaceId, Players.LocalPlayer)
+                        wait(0.1)
+			TeleportService:Teleport(PlaceId, Players.LocalPlayer)
                     else
-			            wait(3)
                         TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
                     end
                     lastRejoinAttempt = tick()
