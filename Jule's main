@@ -417,7 +417,7 @@ local function checkPotionsAndRejoin()
                     if #Players:GetPlayers() <= 1 then
                         Players.LocalPlayer:Kick("\nRejoining...")
                         wait(0.1)
-			            TeleportService:Teleport(PlaceId, Players.LocalPlayer)
+			TeleportService:Teleport(PlaceId, Players.LocalPlayer)
                     else
                         TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
                     end
