@@ -60,49 +60,6 @@ local function saveSettings()
     end
 end
 
-local player = game.Players.LocalPlayer
-local spawnPosition = player.Character.HumanoidRootPart.Position
-
-local function checkPlayerPosition()
-    while true do
-        wait(1)
-
-        local currentPosition = player.Character.HumanoidRootPart.Position
-        local distance = (currentPosition - spawnPosition).Magnitude
-        local heightDifference = currentPosition.Y - spawnPosition.Y
-
-        if heightDifference > 150 and _G.AutoRejoin_Enabled then
-            if #Players:GetPlayers() <= 1 then
-                Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
-                wait(1)
-                TeleportService:Teleport(PlaceId, Players.LocalPlayer)
-            else
-                TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
-            end
-        end
-
-        if heightDifference < -8 and _G.AutoRejoin_Enabled then
-            if #Players:GetPlayers() <= 1 then
-                Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
-                wait(1)
-                TeleportService:Teleport(PlaceId, Players.LocalPlayer)
-            else
-                TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
-            end
-        end
-
-        if distance > 800 and _G.AutoRejoin_Enabled then
-            if #Players:GetPlayers() <= 1 then
-                Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
-                wait(1)
-                TeleportService:Teleport(PlaceId, Players.LocalPlayer)
-            else
-                TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
-            end
-        end
-    end
-end
-
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = COREGUI
 
@@ -459,8 +416,9 @@ local function checkPotionsAndRejoin()
                     if #Players:GetPlayers() <= 1 then
                         Players.LocalPlayer:Kick("\nRejoining...")
                         wait(1)
-                        TeleportService:Teleport(PlaceId, Players.LocalPlayer)
+			            TeleportService:Teleport(PlaceId, Players.LocalPlayer)
                     else
+			            wait(3)
                         TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
                     end
                     lastRejoinAttempt = tick()
@@ -471,6 +429,49 @@ local function checkPotionsAndRejoin()
 end
 
 spawn(checkPotionsAndRejoin)
+
+local player = game.Players.LocalPlayer
+local spawnPosition = player.Character.HumanoidRootPart.Position
+
+local function checkPlayerPosition()
+    while true do
+        wait(1)
+
+        local currentPosition = player.Character.HumanoidRootPart.Position
+        local distance = (currentPosition - spawnPosition).Magnitude
+        local heightDifference = currentPosition.Y - spawnPosition.Y
+
+        if heightDifference > 150 and _G.AutoRejoin_Enabled then
+            if #Players:GetPlayers() <= 1 then
+                Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
+                wait(1)
+                TeleportService:Teleport(PlaceId, Players.LocalPlayer)
+            else
+                TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
+            end
+        end
+
+        if heightDifference < -8 and _G.AutoRejoin_Enabled then
+            if #Players:GetPlayers() <= 1 then
+                Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
+                wait(1)
+                TeleportService:Teleport(PlaceId, Players.LocalPlayer)
+            else
+                TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
+            end
+        end
+
+        if distance > 800 and _G.AutoRejoin_Enabled then
+            if #Players:GetPlayers() <= 1 then
+                Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
+                wait(1)
+                TeleportService:Teleport(PlaceId, Players.LocalPlayer)
+            else
+                TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
+            end
+        end
+    end
+end
 
 game:GetService("RunService").Stepped:Connect(function()
     if _G.Noclip_Enabled then
