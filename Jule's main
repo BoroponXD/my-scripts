@@ -336,7 +336,7 @@ local function createToggleButton(parent, text, settingKey, posY)
 end
 
 createToggleButton(SettingsFrame, "Gem", "Gem", 0.15)
-createToggleButton(SettingsFrame, "Lucky Potion", "lucky_potion", 0.34)
+createToggleButton(SettingsFrame, "Lucky Potion", "luck_potion", 0.34)
 createToggleButton(SettingsFrame, "Speed Potion", "speed_potion", 0.53)
 createToggleButton(SettingsFrame, "Ultimate Potion", "ultimate_potion", 0.72)
 
