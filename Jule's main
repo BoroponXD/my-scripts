@@ -434,7 +434,7 @@ local spawnPosition = player.Character.HumanoidRootPart.Position
 
 local function checkPlayerPosition()
     while true do
-        wait(1)
+        wait(5)
 
         local currentPosition = player.Character.HumanoidRootPart.Position
         local distance = (currentPosition - spawnPosition).Magnitude
