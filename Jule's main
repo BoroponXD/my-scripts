@@ -74,7 +74,7 @@ local function checkPlayerPosition()
         if heightDifference > 150 and _G.AutoRejoin_Enabled then
             if #Players:GetPlayers() <= 1 then
                 Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
-                wait(0.1)
+                wait(1)
                 TeleportService:Teleport(PlaceId, Players.LocalPlayer)
             else
                 TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
@@ -84,7 +84,7 @@ local function checkPlayerPosition()
         if heightDifference < -8 and _G.AutoRejoin_Enabled then
             if #Players:GetPlayers() <= 1 then
                 Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
-                wait(0.1)
+                wait(1)
                 TeleportService:Teleport(PlaceId, Players.LocalPlayer)
             else
                 TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
@@ -94,7 +94,7 @@ local function checkPlayerPosition()
         if distance > 800 and _G.AutoRejoin_Enabled then
             if #Players:GetPlayers() <= 1 then
                 Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
-                wait(0.1)
+                wait(1)
                 TeleportService:Teleport(PlaceId, Players.LocalPlayer)
             else
                 TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
@@ -458,7 +458,7 @@ local function checkPotionsAndRejoin()
                 if tick() - lastRejoinAttempt >= cooldown and _G.AutoRejoin_Enabled then
                     if #Players:GetPlayers() <= 1 then
                         Players.LocalPlayer:Kick("\nRejoining...")
-                        wait(0.1)
+                        wait(1)
                         TeleportService:Teleport(PlaceId, Players.LocalPlayer)
                     else
                         TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
@@ -504,7 +504,7 @@ local function autoFlyToObject()
     -- Функция для перезапуска
     local function restartFunction()
         lastDirection = nil
-        lastTime = tick() -- Обновляем время для перезапуска
+        lastTime = tick()
     end
 
     while true do
@@ -516,16 +516,14 @@ local function autoFlyToObject()
                 local hrp = char.HumanoidRootPart
                 local currentDirection = hrp.Velocity.unit
 
-                -- Проверяем, если направление изменилось
                 if lastDirection and (currentDirection - lastDirection).Magnitude > 0.1 then
-                    lastTime = tick()  -- Сбрасываем таймер, если направление изменилось
+                    lastTime = tick()
                 end
                 
                 lastDirection = currentDirection
 
-                -- Если направление не меняется в течение 10 секунд, перезапускаем
                 if tick() - lastTime >= 10 then
-                    restartFunction()  -- Перезапускаем функцию, если нет изменений в направлении
+                    restartFunction() 
                 end
             end
 
