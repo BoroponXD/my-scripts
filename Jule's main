@@ -1,6 +1,6 @@
 --AutoCollect Items Script (First Release)
 --Here's 3 Function only
-wait(5)
+wait(1)
 local cloneref = cloneref or function(o) return o end
 COREGUI = cloneref(game:GetService("CoreGui"))
 Players = cloneref(game:GetService("Players"))
@@ -417,7 +417,7 @@ local function checkPotionsAndRejoin()
                     if #Players:GetPlayers() <= 1 then
                         Players.LocalPlayer:Kick("\nRejoining...")
                         wait(0.1)
-			TeleportService:Teleport(PlaceId, Players.LocalPlayer)
+			            TeleportService:Teleport(PlaceId, Players.LocalPlayer)
                     else
                         TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
                     end
@@ -435,7 +435,7 @@ local spawnPosition = player.Character.HumanoidRootPart.Position
 
 local function checkPlayerPosition()
     while true do
-        wait(5)
+        wait(1)
 
         local currentPosition = player.Character.HumanoidRootPart.Position
         local distance = (currentPosition - spawnPosition).Magnitude
@@ -556,7 +556,7 @@ local function autoFlyToObject()
                     local hrp = char.HumanoidRootPart
                     local targetPos = nearestObj.Position + Vector3.new(0, 2, 0)
                     local direction = (targetPos - hrp.Position).unit
-                    local speed = 130
+                    local speed = 120
                     
                     local bodyVelocity = Instance.new("BodyVelocity")
                     bodyVelocity.Velocity = direction * speed
