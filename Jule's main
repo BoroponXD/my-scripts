@@ -64,7 +64,6 @@ end
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Parent = COREGUI
 
--- Основной фрейм
 local Frame = Instance.new("Frame", ScreenGui)
 Frame.Size = UDim2.new(0, 300, 0, 450)
 Frame.Position = UDim2.new(0.5, 500, 0.5, -225)
@@ -73,14 +72,13 @@ Frame.BorderSizePixel = 0
 Frame.Active = true
 Frame.Draggable = true
 
--- Добавляем закругленные углы для Frame
 local corner = Instance.new("UICorner", Frame)
-corner.CornerRadius = UDim.new(0, 20) -- регулируем степень закругления
+corner.CornerRadius = UDim.new(0, 20)
 
 local Title = Instance.new("TextLabel", Frame)
 Title.Size = UDim2.new(0.8, 0, 0.1, 0)
 Title.Position = UDim2.new(0.1, 0, 0, 0)
-Title.Text = "Jule's RNG Script"
+Title.Text = "Jule's RNG Script v1.0"
 Title.TextScaled = true
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.BackgroundTransparency = 1
