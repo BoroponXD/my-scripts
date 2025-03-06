@@ -482,6 +482,15 @@ game:GetService("RunService").Stepped:Connect(function()
 end)
 
 local function autoActivatePrompt()
+    while true do
+        task.wait(0.0001)
+        if _G.AutoCollect_Enabled then
+            for _, prompt in ipairs(workspace:GetDescendants()) do
+                if prompt:IsA("ProximityPrompt") and prompt.Enabled then
+                    prompt:InputHoldBegin()
+                    task.wait(0.0001)
+                    prompt:InputHoldEnd()
+                end
     while _G.AutoCollect_Enabled do
         for _, prompt in ipairs(workspace:GetDescendants()) do
             if prompt:IsA("ProximityPrompt") and prompt.Enabled then
@@ -493,38 +502,71 @@ local function autoActivatePrompt()
     end
 end
 
-local function autoFlyToObject()
-    while _G.AutoFly_Enabled do
-        task.wait(0.2)
+local function autoFlyToObject() 
+    local lastDirection = nil
+    local lastTime = tick()
 
-        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if not hrp then continue end
+    -- Функция для перезапуска
+    local function restartFunction()
+        lastDirection = nil
+        lastTime = tick()
+    end
 
-        local trackedNames = {}
-        for name, enabled in pairs(settings) do
-            if enabled then
-                table.insert(trackedNames, name)
-            end
-        end
+    while true do
+        task.wait(0.1)
         
-        local nearestObj, nearestDist = nil, math.huge
-        for _, obj in ipairs(workspace:GetDescendants()) do
-            if obj:IsA("Model") and table.find(trackedNames, obj.Name) then
-                local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-                if part then
-                    local dist = (hrp.Position - part.Position).Magnitude
-                    if dist < nearestDist then
-                        nearestDist = dist
-                        nearestObj = part
-                    end
+        if _G.AutoFly_Enabled then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
+                local currentDirection = hrp.Velocity.unit
+
+                if lastDirection and (currentDirection - lastDirection).Magnitude > 0.1 then
+                    lastTime = tick()
+                end
+                
+                lastDirection = currentDirection
+                if tick() - lastTime >= 10 then
+                    restartFunction() 
                 end
             end
-        end
-
-        if nearestObj then
-            local targetPos = nearestObj.Position + Vector3.new(0, 2, 0)
-            local direction = (targetPos - hrp.Position).unit
-            hrp.Velocity = direction * 120
+            local trackedNames = {}
+            for name, enabled in pairs(settings) do
+                if enabled then
+                    table.insert(trackedNames, name)
+                end
+            end
+            
+            local nearestObj = nil
+            local nearestDist = math.huge
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("Model") and table.find(trackedNames, obj.Name) then
+                    local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
+                    if part then
+                        local dist = (LocalPlayer.Character.HumanoidRootPart.Position - part.Position).Magnitude
+                        if dist < nearestDist then
+						    wait(0.1)
+                            nearestDist = dist
+                            nearestObj = part
+                        end
+                    end
+                end
+            if nearestObj then
+                if char and char:FindFirstChild("HumanoidRootPart") then
+                    local hrp = char.HumanoidRootPart
+                    local targetPos = nearestObj.Position + Vector3.new(0, 2, 0)
+                    local direction = (targetPos - hrp.Position).unit
+                    local speed = 120
+                    
+                    local bodyVelocity = Instance.new("BodyVelocity")
+                    bodyVelocity.Velocity = direction * speed
+                    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                    bodyVelocity.Parent = hrp
+                    
+                    while (hrp.Position - targetPos).Magnitude > 3 and _G.AutoFly_Enabled do
+                        task.wait()
+                end
+            bodyVelocity:Destroy()
         end
     end
 end
