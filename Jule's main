@@ -379,9 +379,15 @@ local function displayNotification(message)
     end)
 end
 
+local function disableAutoFeatures()
+    _G.AutoCollect_Enabled = false
+    _G.AutoFly_Enabled = false
+    wait(1)
+end
+
 local function checkPotionsAndRejoin()
     while true do
-        task.wait(1)
+	    task.wait(1)
 
         local potionsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Potions")
         if potionsFolder then
@@ -411,10 +417,11 @@ local function checkPotionsAndRejoin()
                 end
 
                 if tick() - lastRejoinAttempt >= cooldown and _G.AutoRejoin_Enabled then
+					disableAutoFeatures()
                     if #Players:GetPlayers() <= 1 then
                         Players.LocalPlayer:Kick("\nRejoining...")
                         wait(0.1)
-			TeleportService:Teleport(PlaceId, Players.LocalPlayer)
+                        TeleportService:Teleport(PlaceId, Players.LocalPlayer)
                     else
                         TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
                     end
@@ -432,33 +439,14 @@ local spawnPosition = player.Character.HumanoidRootPart.Position
 
 local function checkPlayerPosition()
     while true do
-        wait(1)
+	    wait(1)
 
         local currentPosition = player.Character.HumanoidRootPart.Position
         local distance = (currentPosition - spawnPosition).Magnitude
         local heightDifference = currentPosition.Y - spawnPosition.Y
 
-        if heightDifference > 150 and _G.AutoRejoin_Enabled then
-            if #Players:GetPlayers() <= 1 then
-                Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
-                wait(0.1)
-                TeleportService:Teleport(PlaceId, Players.LocalPlayer)
-            else
-                TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
-            end
-        end
-
-        if heightDifference < -8 and _G.AutoRejoin_Enabled then
-            if #Players:GetPlayers() <= 1 then
-                Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
-                wait(0.1)
-                TeleportService:Teleport(PlaceId, Players.LocalPlayer)
-            else
-                TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
-            end
-        end
-
-        if distance > 800 and _G.AutoRejoin_Enabled then
+        if (heightDifference > 150 or heightDifference < -8 or distance > 800) and _G.AutoRejoin_Enabled then
+			disableAutoFeatures()
             if #Players:GetPlayers() <= 1 then
                 Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
                 wait(0.1)
@@ -469,6 +457,8 @@ local function checkPlayerPosition()
         end
     end
 end
+
+task.spawn(checkPlayerPosition)
 
 game:GetService("RunService").Stepped:Connect(function()
     if _G.Noclip_Enabled then
@@ -573,7 +563,6 @@ end
 
 task.spawn(autoActivatePrompt)
 task.spawn(autoFlyToObject)
-task.spawn(checkPlayerPosition)
 
 wait(10)
 
