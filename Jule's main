@@ -481,13 +481,13 @@ game:GetService("RunService").Stepped:Connect(function()
 end)
 
 local function autoActivatePrompt()
-    while wait(0.01) do
-        task.wait(0.01)
+    while wait(0.001) do
+        task.wait(0.001)
         if _G.AutoCollect_Enabled then
             for _, prompt in ipairs(workspace:GetDescendants()) do
                 if prompt:IsA("ProximityPrompt") and prompt.Enabled then
                     prompt:InputHoldBegin()
-                    task.wait(0.01)
+                    task.wait(0.001)
                     prompt:InputHoldEnd()
                 end
             end
