@@ -1,6 +1,5 @@
 --AutoCollect Items Script (First Release)
 --Here's 3 Function only
-wait(1)
 local cloneref = cloneref or function(o) return o end
 COREGUI = cloneref(game:GetService("CoreGui"))
 Players = cloneref(game:GetService("Players"))
@@ -482,21 +481,15 @@ game:GetService("RunService").Stepped:Connect(function()
 end)
 
 local function autoActivatePrompt()
-    while true do
-        task.wait(0.0001)
+    while wait(0.01) do
+        task.wait(0.01)
         if _G.AutoCollect_Enabled then
             for _, prompt in ipairs(workspace:GetDescendants()) do
                 if prompt:IsA("ProximityPrompt") and prompt.Enabled then
                     prompt:InputHoldBegin()
-                    task.wait(0.0001)
+                    task.wait(0.01)
                     prompt:InputHoldEnd()
                 end
-    while _G.AutoCollect_Enabled do
-        for _, prompt in ipairs(workspace:GetDescendants()) do
-            if prompt:IsA("ProximityPrompt") and prompt.Enabled then
-                prompt:InputHoldBegin()
-                task.wait(0.1)
-                prompt:InputHoldEnd()
             end
         end
     end
@@ -526,10 +519,12 @@ local function autoFlyToObject()
                 end
                 
                 lastDirection = currentDirection
+
                 if tick() - lastTime >= 10 then
                     restartFunction() 
                 end
             end
+
             local trackedNames = {}
             for name, enabled in pairs(settings) do
                 if enabled then
@@ -551,6 +546,8 @@ local function autoFlyToObject()
                         end
                     end
                 end
+            end
+            
             if nearestObj then
                 if char and char:FindFirstChild("HumanoidRootPart") then
                     local hrp = char.HumanoidRootPart
@@ -565,8 +562,11 @@ local function autoFlyToObject()
                     
                     while (hrp.Position - targetPos).Magnitude > 3 and _G.AutoFly_Enabled do
                         task.wait()
+                    end
+                    
+                    bodyVelocity:Destroy()
                 end
-            bodyVelocity:Destroy()
+            end
         end
     end
 end
