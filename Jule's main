@@ -1,16 +1,25 @@
---AutoCollect Items Script (First Release)
---Here's 3 Function only
+if _G.AUTO_COLLECT_LOADED and not _G.DEBUG_MODE then
+    return
+end
+
+pcall(function() getgenv().AUTO_COLLECT_LOADED = true end)
+
+if _G.AUTO_COLLECT_EXECUTED then
+    return
+end
+_G.AUTO_COLLECT_EXECUTED = true
+
 local cloneref = cloneref or function(o) return o end
-COREGUI = cloneref(game:GetService("CoreGui"))
-Players = cloneref(game:GetService("Players"))
-PlaceId, JobId = game.PlaceId, game.JobId
+local COREGUI = cloneref(game:GetService("CoreGui"))
+local Players = cloneref(game:GetService("Players"))
+local PlaceId, JobId = game.PlaceId, game.JobId
 local TeleportService = game:GetService("TeleportService")
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
 local HttpService = game:GetService("HttpService")
-local Stats = PlayerGui and PlayerGui:FindFirstChild("Stats")
+local Stats = playerGui and playerGui:FindFirstChild("Stats")
 local Main = Stats and Stats:FindFirstChild("Main")
 local EventLabel = Main and Main:FindFirstChild("Event")
 
@@ -55,7 +64,7 @@ local function saveSettings()
             AutoRejoin_Enabled = _G.AutoRejoin_Enabled,
             Settings = _G.Settings
         }
-        local encodedSettings = game:GetService("HttpService"):JSONEncode(settings)
+        local encodedSettings = HttpService:JSONEncode(settings)
         writefile("autocollect_settings.json", encodedSettings)
     end
 end
@@ -110,7 +119,6 @@ No.TextColor3 = Color3.fromRGB(200, 200, 200)
 No.BackgroundTransparency = 1
 No.Font = Enum.Font.SourceSansBold
 
--- Create AutoCollect Button
 local AutoCollectButton = Instance.new("TextButton", Frame)
 AutoCollectButton.Size = UDim2.new(0.65, 0, 0.1, 0)
 AutoCollectButton.Position = UDim2.new(0.1, 0, 0.32, 0)
@@ -129,7 +137,6 @@ AutoCollectButton.MouseButton1Click:Connect(function()
     saveSettings()
 end)
 
--- Create AutoFly Button
 local AutoFlyButton = Instance.new("TextButton", Frame)
 AutoFlyButton.Size = UDim2.new(0.8, 0, 0.1, 0)
 AutoFlyButton.Position = UDim2.new(0.1, 0, 0.429, 0)
@@ -148,7 +155,6 @@ AutoFlyButton.MouseButton1Click:Connect(function()
     saveSettings()
 end)
 
--- Create Noclip Button
 local NoclipButton = Instance.new("TextButton", Frame)
 NoclipButton.Size = UDim2.new(0.8, 0, 0.1, 0)
 NoclipButton.Position = UDim2.new(0.1, 0, 0.537, 0)
@@ -167,7 +173,6 @@ NoclipButton.MouseButton1Click:Connect(function()
     saveSettings()
 end)
 
--- Create AutoRejoin Button
 local AutoRejoinButton = Instance.new("TextButton", Frame)
 AutoRejoinButton.Size = UDim2.new(0.8, 0, 0.1, 0)
 AutoRejoinButton.Position = UDim2.new(0.1, 0, 0.72, 0)
@@ -186,7 +191,6 @@ AutoRejoinButton.MouseButton1Click:Connect(function()
     saveSettings()
 end)
 
--- Create Toggle All Button
 local AllFunctionsButton = Instance.new("TextButton", Frame)
 AllFunctionsButton.Size = UDim2.new(0.8, 0, 0.1, 0)
 AllFunctionsButton.Position = UDim2.new(0.1, 0, 0.2, 0)
@@ -232,7 +236,7 @@ end
 local function loadSettings()
     if readfile and isfile("autocollect_settings.json") then
         local settingsData = readfile("autocollect_settings.json")
-        local settings = game:GetService("HttpService"):JSONDecode(settingsData)
+        local settings = HttpService:JSONDecode(settingsData)
         
         _G.AutoCollect_Enabled = settings.AutoCollect_Enabled or false
         _G.AutoFly_Enabled = settings.AutoFly_Enabled or false
@@ -248,8 +252,6 @@ local function loadSettings()
     AutoRejoinButton.BackgroundColor3 = _G.AutoRejoin_Enabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end
 
-loadSettings()
-
 local settings = {
     Gem = true,
     lucky_potion = true,
@@ -257,24 +259,22 @@ local settings = {
     ultimate_potion = true
 }
 
-local function saveSettings()
+local function saveItemSettings()
     if writefile then
-        local encodedSettings = game:GetService("HttpService"):JSONEncode(settings)
+        local encodedSettings = HttpService:JSONEncode(settings)
         writefile("autocollect_items_settings.json", encodedSettings)
     end
 end
 
-local function loadSettings()
+local function loadItemSettings()
     if readfile and isfile("autocollect_items_settings.json") then
         local data = readfile("autocollect_items_settings.json")
-        local decoded = game:GetService("HttpService"):JSONDecode(data)
+        local decoded = HttpService:JSONDecode(data)
         for k, v in pairs(decoded) do
             settings[k] = v
         end
     end
 end
-
-loadSettings()
 
 local SettingsButton = Instance.new("TextButton", Frame)
 SettingsButton.Size = UDim2.new(0.115, 0, 0.09, 0)
@@ -297,8 +297,8 @@ SettingsFrame.BackgroundTransparency = 0
 SettingsFrame.BorderSizePixel = 0
 SettingsFrame.Visible = false
 
-local UICornerButton = Instance.new("UICorner", SettingsFrame)
-corner.CornerRadius = UDim.new(0, 8)
+local UICornerSettings = Instance.new("UICorner", SettingsFrame)
+UICornerSettings.CornerRadius = UDim.new(0, 8)
 
 local Ye = Instance.new("TextLabel", SettingsFrame)
 Ye.Size = UDim2.new(1, 0, 0.1, 0)
@@ -319,22 +319,19 @@ local function createToggleButton(parent, text, settingKey, posY)
     button.BackgroundTransparency = 0.6
     button.BorderSizePixel = 2
 
-	local UICornerButton = Instance.new("UICorner", button)
+    local UICornerButton = Instance.new("UICorner", button)
     UICornerButton.CornerRadius = UDim.new(0, 8)
 
-    
     button.MouseButton1Click:Connect(function()
         settings[settingKey] = not settings[settingKey]
         button.Text = text .. ": " .. (settings[settingKey] and "Collect" or "Ignore")
-        
         button.BackgroundColor3 = settings[settingKey] and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
-        
-        saveSettings()
+        saveItemSettings()
     end)
 end
 
 createToggleButton(SettingsFrame, "Gem", "Gem", 0.15)
-createToggleButton(SettingsFrame, "Lucky Potion", "luck_potion", 0.34)
+createToggleButton(SettingsFrame, "Lucky Potion", "lucky_potion", 0.34)
 createToggleButton(SettingsFrame, "Speed Potion", "speed_potion", 0.53)
 createToggleButton(SettingsFrame, "Ultimate Potion", "ultimate_potion", 0.72)
 
@@ -382,13 +379,12 @@ end
 local function disableAutoFeatures()
     _G.AutoCollect_Enabled = false
     _G.AutoFly_Enabled = false
-    wait(1)
+    task.wait(1)
 end
 
 local function checkPotionsAndRejoin()
     while true do
-	    task.wait(1)
-
+        task.wait(1)
         local potionsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Potions")
         if potionsFolder then
             local missing = true
@@ -401,7 +397,7 @@ local function checkPotionsAndRejoin()
 
             if missing and _G.AutoRejoin_Enabled then
                 displayNotification("No Items found!")
-                wait(1)
+                task.wait(1)
                 local countdown = 3
                 
                 while countdown > 0 and _G.AutoRejoin_Enabled do
@@ -417,10 +413,10 @@ local function checkPotionsAndRejoin()
                 end
 
                 if tick() - lastRejoinAttempt >= cooldown and _G.AutoRejoin_Enabled then
-					disableAutoFeatures()
+                    disableAutoFeatures()
                     if #Players:GetPlayers() <= 1 then
                         Players.LocalPlayer:Kick("\nRejoining...")
-                        wait(0.1)
+                        task.wait(0.1)
                         TeleportService:Teleport(PlaceId, Players.LocalPlayer)
                     else
                         TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
@@ -432,37 +428,32 @@ local function checkPotionsAndRejoin()
     end
 end
 
-spawn(checkPotionsAndRejoin)
-
-local player = game.Players.LocalPlayer
-local spawnPosition = player.Character.HumanoidRootPart.Position
-
 local function checkPlayerPosition()
+    local spawnPosition = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.Position or Vector3.new(0, 0, 0)
     while true do
-	    wait(1)
+        task.wait(1)
+        local currentPosition = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.Position
+        if currentPosition then
+            local distance = (currentPosition - spawnPosition).Magnitude
+            local heightDifference = currentPosition.Y - spawnPosition.Y
 
-        local currentPosition = player.Character.HumanoidRootPart.Position
-        local distance = (currentPosition - spawnPosition).Magnitude
-        local heightDifference = currentPosition.Y - spawnPosition.Y
-
-        if (heightDifference > 150 or heightDifference < -8 or distance > 800) and _G.AutoRejoin_Enabled then
-			disableAutoFeatures()
-            if #Players:GetPlayers() <= 1 then
-                Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
-                wait(0.1)
-                TeleportService:Teleport(PlaceId, Players.LocalPlayer)
-            else
-                TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
+            if (heightDifference > 150 or heightDifference < -8 or distance > 800) and _G.AutoRejoin_Enabled then
+                disableAutoFeatures()
+                if #Players:GetPlayers() <= 1 then
+                    Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
+                    task.wait(0.1)
+                    TeleportService:Teleport(PlaceId, Players.LocalPlayer)
+                else
+                    TeleportService:TeleportToPlaceInstance(PlaceId, JobId, Players.LocalPlayer)
+                end
             end
         end
     end
 end
 
-task.spawn(checkPlayerPosition)
-
 game:GetService("RunService").Stepped:Connect(function()
-    if _G.Noclip_Enabled then
-        for _, part in pairs(Character:GetChildren()) do
+    if _G.Noclip_Enabled and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetChildren()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
             end
@@ -471,48 +462,48 @@ game:GetService("RunService").Stepped:Connect(function()
 end)
 
 local function autoActivatePrompt()
-    while wait(0.001) do
-        task.wait(0.001)
-        if _G.AutoCollect_Enabled then
+    while true do
+        task.wait(0.1)
+        if _G.AutoCollect_Enabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = LocalPlayer.Character.HumanoidRootPart
             for _, prompt in ipairs(workspace:GetDescendants()) do
                 if prompt:IsA("ProximityPrompt") and prompt.Enabled then
-                    prompt:InputHoldBegin()
-                    task.wait(0.001)
-                    prompt:InputHoldEnd()
+                    local promptPos = prompt.Parent.Position
+                    local distance = (hrp.Position - promptPos).Magnitude
+                    if distance < 50 then -- Only process prompts within 50 studs
+                        prompt:InputHoldBegin()
+                        task.wait(0.01)
+                        prompt:InputHoldEnd()
+                    end
                 end
             end
         end
     end
 end
 
-local function autoFlyToObject() 
+local function autoFlyToObject()
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
     local lastDirection = nil
     local lastTime = tick()
 
-    -- Функция для перезапуска
     local function restartFunction()
         lastDirection = nil
         lastTime = tick()
     end
 
     while true do
-        task.wait(0.1)
-        
-        if _G.AutoFly_Enabled then
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local hrp = char.HumanoidRootPart
-                local currentDirection = hrp.Velocity.unit
+        task.wait(0.2)
+        if _G.AutoFly_Enabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = LocalPlayer.Character.HumanoidRootPart
+            local currentDirection = hrp.Velocity.Unit
+            if lastDirection and (currentDirection - lastDirection).Magnitude > 0.1 then
+                lastTime = tick()
+            end
+            lastDirection = currentDirection
 
-                if lastDirection and (currentDirection - lastDirection).Magnitude > 0.1 then
-                    lastTime = tick()
-                end
-                
-                lastDirection = currentDirection
-
-                if tick() - lastTime >= 10 then
-                    restartFunction() 
-                end
+            if tick() - lastTime >= 10 then
+                restartFunction()
             end
 
             local trackedNames = {}
@@ -521,57 +512,43 @@ local function autoFlyToObject()
                     table.insert(trackedNames, name)
                 end
             end
-            
+
             local nearestObj = nil
             local nearestDist = math.huge
             for _, obj in ipairs(workspace:GetDescendants()) do
                 if obj:IsA("Model") and table.find(trackedNames, obj.Name) then
                     local part = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
                     if part then
-                        local dist = (LocalPlayer.Character.HumanoidRootPart.Position - part.Position).Magnitude
-                        if dist < nearestDist then
-						    wait(0.1)
+                        local dist = (hrp.Position - part.Position).Magnitude
+                        if dist < nearestDist and dist < 200 then -- Limit search distance
                             nearestDist = dist
                             nearestObj = part
                         end
                     end
                 end
             end
-            
+
             if nearestObj then
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    local hrp = char.HumanoidRootPart
-                    local targetPos = nearestObj.Position + Vector3.new(0, 2, 0)
-                    local direction = (targetPos - hrp.Position).unit
-                    local speed = 120
-                    
-                    local bodyVelocity = Instance.new("BodyVelocity")
-                    bodyVelocity.Velocity = direction * speed
-                    bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                    bodyVelocity.Parent = hrp
-                    
-                    while (hrp.Position - targetPos).Magnitude > 3 and _G.AutoFly_Enabled do
-                        task.wait()
-                    end
-                    
-                    bodyVelocity:Destroy()
+                bodyVelocity.Parent = hrp
+                local targetPos = nearestObj.Position + Vector3.new(0, 2, 0)
+                local direction = (targetPos - hrp.Position).Unit
+                local speed = 120
+                bodyVelocity.Velocity = direction * speed
+
+                if (hrp.Position - targetPos).Magnitude <= 3 then
+                    bodyVelocity.Parent = nil
                 end
+            else
+                bodyVelocity.Parent = nil
             end
+        else
+            bodyVelocity.Parent = nil
         end
     end
 end
 
-task.spawn(autoActivatePrompt)
-task.spawn(autoFlyToObject)
-
-wait(10)
-
-local HttpService = game:GetService("HttpService")
-local LocalPlayer = game.Players.LocalPlayer
-local PlayerGui = LocalPlayer:FindFirstChild("PlayerGui")
-
 local function openInventory()
-    local interface = PlayerGui:FindFirstChild("Interface")
+    local interface = playerGui:FindFirstChild("Interface")
     if interface then
         local inventoryFrame = interface:FindFirstChild("Inventory")
         if inventoryFrame then
@@ -581,7 +558,7 @@ local function openInventory()
 end
 
 local function closeInventory()
-    local interface = PlayerGui:FindFirstChild("Interface")
+    local interface = playerGui:FindFirstChild("Interface")
     if interface then
         local inventoryFrame = interface:FindFirstChild("Inventory")
         if inventoryFrame then
@@ -599,11 +576,10 @@ local function getInventoryStats()
     }
 
     openInventory()
+    task.wait(0.5)
 
-    wait(1)
-
-    if PlayerGui then
-        local interface = PlayerGui:FindFirstChild("Interface")
+    if playerGui then
+        local interface = playerGui:FindFirstChild("Interface")
         if interface then
             local inventory = interface:FindFirstChild("Inventory")
             if inventory then
@@ -611,49 +587,35 @@ local function getInventoryStats()
                 if main then
                     local scrollingFrame = main:FindFirstChild("ScrollingFrame")
                     if scrollingFrame then
-                        local ultimatePotion = scrollingFrame:FindFirstChild("ultimate_potion")
-                        if ultimatePotion then
-                            local amountText = ultimatePotion:FindFirstChild("Button"):FindFirstChild("Amount"):FindFirstChild("AmountText")
-                            if amountText then
-                                stats.ultimate_potion = tonumber(amountText.Text) or 0
+                        local function getAmount(itemName)
+                            local item = scrollingFrame:FindFirstChild(itemName)
+                            if item then
+                                local amountText = item:FindFirstChild("Button") and item.Button:FindFirstChild("Amount") and item.Button.Amount:FindFirstChild("AmountText")
+                                if amountText then
+                                    local formattedText = string.gsub(amountText.Text, "[^%d]", "")
+                                    return tonumber(formattedText) or 0
+                                end
                             end
+                            return 0
                         end
 
-                        local luckyPotion = scrollingFrame:FindFirstChild("luck_potion")
-                        if luckyPotion then
-                            local amountText = luckyPotion:FindFirstChild("Button"):FindFirstChild("Amount"):FindFirstChild("AmountText")
-                            if amountText then
-                                stats.lucky_potion = tonumber(amountText.Text) or 0
-                            end
-                        end
-
-                        local speedPotion = scrollingFrame:FindFirstChild("speed_potion")
-                        if speedPotion then
-                            local amountText = speedPotion:FindFirstChild("Button"):FindFirstChild("Amount"):FindFirstChild("AmountText")
-                            if amountText then
-                                stats.speed_potion = tonumber(amountText.Text) or 0
-                            end
-                        end
+                        stats.ultimate_potion = getAmount("ultimate_potion")
+                        stats.lucky_potion = getAmount("lucky_potion")
+                        stats.speed_potion = getAmount("speed_potion")
                     end
                 end
             end
 
             local hud = interface:FindFirstChild("HUD")
             if hud then
-                print("HUD found!")
                 local diamondsFrame = hud:FindFirstChild("Diamonds")
                 if diamondsFrame then
-                    print("Diamonds found!")
                     local amountLabel = diamondsFrame:FindFirstChild("Amount")
                     if amountLabel and amountLabel:IsA("TextLabel") then
-                        print("Amount.Text: " .. amountLabel.Text)
                         local formattedText = string.gsub(amountLabel.Text, "[^%d]", "")
                         local gemsValue = tonumber(formattedText)
                         if gemsValue then
                             stats.gems = gemsValue
-                            print("Gems: " .. gemsValue)
-                        else
-                            print("Error while trying to rewrite! Text: " .. formattedText)
                         end
                     end
                 end
@@ -668,18 +630,33 @@ local function getInventoryStats()
     print("Gems: " .. stats.gems)
 
     closeInventory()
-
     return stats
 end
 
 local function saveStatsToFile()
     local stats = getInventoryStats()
     local encodedStats = HttpService:JSONEncode(stats)
-
     print("JSON-data to write:")
     print(encodedStats)
-
     writefile("stats.json", encodedStats)
 end
 
-saveStatsToFile()
+-- Delay script execution by 3 seconds
+task.delay(3, function()
+    loadSettings()
+    loadItemSettings()
+    task.spawn(checkPotionsAndRejoin)
+    task.spawn(checkPlayerPosition)
+    task.spawn(autoActivatePrompt)
+    task.spawn(autoFlyToObject)
+    task.wait(10)
+    saveStatsToFile()
+end)
+
+-- Queue script with 3-second delay on teleport
+local SCRIPT_URL = "https://raw.githubusercontent.com/BoroponXD/my-scripts/refs/heads/main/Jule's%20main"
+if syn and syn.queue_on_teleport then
+    syn.queue_on_teleport(('task.delay(3, function() loadstring(game:HttpGet("%s"))() end)'):format(SCRIPT_URL))
+elseif queue_on_teleport then
+    queue_on_teleport(('task.delay(3, function() loadstring(game:HttpGet("%s"))() end)'):format(SCRIPT_URL))
+end
