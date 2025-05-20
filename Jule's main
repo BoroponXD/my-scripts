@@ -14,27 +14,6 @@ local Stats = playerGui and playerGui:FindFirstChild("Stats")
 local Main = Stats and Stats:FindFirstChild("Main")
 local EventLabel = Main and Main:FindFirstChild("Event")
 
-local camera = game.Workspace.CurrentCamera
-
-local position = Vector3.new(22.6818218, 73.0592346, 154.217697)
-
-local xx, xy, xz = -0.0239658114, 0.17416513, -0.98442477
-local yx, yy, yz = 0, 0.984707713, 0.174215153
-local zx, zy, zz = 0.999712884, 0.00417520758, -0.0235993136
-
-local cframe = CFrame.new(position) * CFrame.new(
-    0, 0, 0,
-    xx, xy, xz,
-    yx, yy, yz,
-    zx, zy, zz
-)
-
-camera.CameraType = Enum.CameraType.Scriptable
-camera.CFrame = cframe
-
-wait()
-camera.CameraType = Enum.CameraType.Custom
-
 _G.Settings = {
     Gem = true,
     lucky_potion = true,
@@ -703,6 +682,26 @@ end
 
 task.spawn(function()
     wait(5)
+    local camera = game.Workspace.CurrentCamera
+    
+    local position = Vector3.new(22.6818218, 73.0592346, 154.217697)
+    
+    local xx, xy, xz = -0.0239658114, 0.17416513, -0.98442477
+    local yx, yy, yz = 0, 0.984707713, 0.174215153
+    local zx, zy, zz = 0.999712884, 0.00417520758, -0.0235993136
+    
+    local cframe = CFrame.new(position) * CFrame.new(
+        0, 0, 0,
+        xx, xy, xz,
+        yx, yy, yz,
+        zx, zy, zz
+    )
+    
+    camera.CameraType = Enum.CameraType.Scriptable
+    camera.CFrame = cframe
+    
+    wait()
+    camera.CameraType = Enum.CameraType.Custom
     while true do
         saveStatsToFile()
         wait(5)
