@@ -425,12 +425,12 @@ local function checkPotionsAndRejoin()
                 while countdown > 0 and _G.AutoRejoin_Enabled do
                     displayNotification("Rejoin in " .. countdown .. "...")
                     countdown = countdown - 1
-                    task.wait(0.8)
+                    task.wait(0.6)
                 end
 
                 if not _G.AutoRejoin_Enabled then
                     displayNotification("AutoRejoin is OFF")
-                    task.wait(1)
+                    task.wait(0.8)
                     continue
                 end
 
