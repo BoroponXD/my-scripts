@@ -24,8 +24,7 @@ end
 
 local SCRIPT_URL = "https://raw.githubusercontent.com/BoroponXD/my-scripts/refs/heads/main/Jule's%20main"
 
--- Delay the script execution by 3 seconds
-task.delay(3, function()
+task.delay(5, function()
     local success, err = pcall(function()
         loadstring(game:HttpGet(SCRIPT_URL))()
     end)
@@ -36,7 +35,7 @@ task.delay(3, function()
 end)
 
 if syn and syn.queue_on_teleport then
-    syn.queue_on_teleport(('task.delay(3, function() loadstring(game:HttpGet("%s"))() end)'):format(SCRIPT_URL))
+    syn.queue_on_teleport(('task.delay(5, function() loadstring(game:HttpGet("%s"))() end)'):format(SCRIPT_URL))
 elseif queue_on_teleport then
     queue_on_teleport(('task.delay(3, function() loadstring(game:HttpGet("%s"))() end)'):format(SCRIPT_URL))
 end
