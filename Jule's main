@@ -564,7 +564,7 @@ end
 task.spawn(autoActivatePrompt)
 task.spawn(autoFlyToObject)
 
-wait(10)
+wait(5)
 
 local HttpService = game:GetService("HttpService")
 local LocalPlayer = game.Players.LocalPlayer
