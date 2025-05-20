@@ -37,5 +37,5 @@ end)
 if syn and syn.queue_on_teleport then
     syn.queue_on_teleport(('task.delay(5, function() loadstring(game:HttpGet("%s"))() end)'):format(SCRIPT_URL))
 elseif queue_on_teleport then
-    queue_on_teleport(('task.delay(3, function() loadstring(game:HttpGet("%s"))() end)'):format(SCRIPT_URL))
+    queue_on_teleport(('task.delay(5, function() loadstring(game:HttpGet("%s"))() end)'):format(SCRIPT_URL))
 end
