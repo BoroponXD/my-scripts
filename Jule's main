@@ -636,7 +636,7 @@ local function getInventoryStats()
                             end
                         end
 
-                        local luckyPotion = scrollingFrame:FindFirstChild("lucky_potion")
+                        local luckyPotion = scrollingFrame:FindFirstChild("luck_potion")
                         if luckyPotion then
                             local amountText = luckyPotion:FindFirstChild("Button"):FindFirstChild("Amount"):FindFirstChild("AmountText")
                             if amountText then
