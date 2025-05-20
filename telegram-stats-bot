@@ -1,10 +1,28 @@
 const fs = require('fs');
 const axios = require('axios');
 
-const TELEGRAM_BOT_TOKEN = 'YOUR_TOKEN';
+const TELEGRAM_BOT_TOKEN = 'YOUR TOKEN';
 const TELEGRAM_CHAT_ID = 'YOUR ID';
 
-let lastMessageId = null;
+const readLastMessageId = () => {
+  try {
+    const data = fs.readFileSync('message_id.json', 'utf8');
+    return JSON.parse(data).message_id;
+  } catch (error) {
+    console.log('⚠️ No previous message_id found or error reading message_id.json:', error.message);
+    return null;
+  }
+};
+
+const saveLastMessageId = (messageId) => {
+  fs.writeFileSync('message_id.json', JSON.stringify({ message_id: messageId }, null, 2));
+};
+
+let lastMessageId = readLastMessageId();
+
+const formatNumber = (num) => {
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
 
 const readStats = () => {
   try {
@@ -16,7 +34,6 @@ const readStats = () => {
   }
 };
 
-// Saving now stats in the current_stats.json
 const saveCurrentStats = (stats) => {
   const data = {
     stats: stats,
@@ -25,16 +42,14 @@ const saveCurrentStats = (stats) => {
   fs.writeFileSync('current_stats.json', JSON.stringify(data, null, 2));
 };
 
-// Saving stats for hour ago
 const saveHistoryStats = (stats) => {
   const data = {
     stats: stats,
-    timestamp: Date.now() // Saving time now
+    timestamp: Date.now()
   };
   fs.writeFileSync('history_stats.json', JSON.stringify(data, null, 2));
 };
 
-// Getting stats now
 const readCurrentStats = () => {
   try {
     const data = fs.readFileSync('current_stats.json', 'utf8');
@@ -45,89 +60,101 @@ const readCurrentStats = () => {
   }
 };
 
-// Getting stats, with check
 const readHistoryStats = () => {
   try {
     const data = fs.readFileSync('history_stats.json', 'utf8');
     return JSON.parse(data);
   } catch (error) {
     console.error('⚠️ Error while trying to read history_stats.json:', error.message);
-    return null; // Sends null if no file or just error
+    return null;
   }
 };
 
-// To send stats in Telegram
+const deletePreviousMessage = async () => {
+  if (lastMessageId) {
+    const deleteUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/deleteMessage`;
+    try {
+      await axios.post(deleteUrl, {
+        chat_id: TELEGRAM_CHAT_ID,
+        message_id: lastMessageId
+      });
+      console.log('✅ Previous message deleted!');
+    } catch (error) {
+      console.error('⚠️ Error while trying to delete previous message:', error.response ? error.response.data : error.message);
+    }
+  }
+};
+
 const sendToTelegram = async (currentStats, historyStats) => {
-  const currentTime = new Date(currentStats.timestamp).toLocaleString(); // Time now
-// One hour ago
-  const oneHourAgo = historyStats ? new Date(historyStats.timestamp).toLocaleString() : 'N/A'; // If no data, types "N/A"
+  const currentTime = new Date(currentStats.timestamp).toLocaleString();
+  const oneHourAgo = historyStats ? new Date(historyStats.timestamp).toLocaleString() : 'N/A';
 
   const message = `
-📊 **Your Inventory (Current Time: ${currentTime})**:
-💎 Gems: ${currentStats.stats.gems}
-🍀 Lucky Potion: ${currentStats.stats.lucky_potion}
-⚡ Speed Potion: ${currentStats.stats.speed_potion}
-🔥 Ultimate Potion: ${currentStats.stats.ultimate_potion}
+📊 Your Inventory 
+   (Time: ${currentTime}):
 
----
+💎 Gems: ${formatNumber(currentStats.stats.gems)}
+🍀 Lucky Potion: ${formatNumber(currentStats.stats.lucky_potion)}
+⚡ Speed Potion: ${formatNumber(currentStats.stats.speed_potion)}
+🔥 Ultimate Potion: ${formatNumber(currentStats.stats.ultimate_potion)}
 
-🕒 **Your Inventory (1 Hour Ago: ${oneHourAgo})**:
-💎 Gems: ${historyStats ? historyStats.stats.gems : 'N/A'}
-🍀 Lucky Potion: ${historyStats ? historyStats.stats.lucky_potion : 'N/A'}
-⚡ Speed Potion: ${historyStats ? historyStats.stats.speed_potion : 'N/A'}
-🔥 Ultimate Potion: ${historyStats ? historyStats.stats.ultimate_potion : 'N/A'}
+------------------------------------------------------
+------------------------------------------------------
+------------------------------------------------------
+
+🕒 Your Inventory 1 Hour Ago
+   (Time: ${oneHourAgo}):
+
+💎 Gems: ${historyStats ? formatNumber(historyStats.stats.gems) : 'N/A'}
+🍀 Lucky Potion: ${historyStats ? formatNumber(historyStats.stats.lucky_potion) : 'N/A'}
+⚡ Speed Potion: ${historyStats ? formatNumber(historyStats.stats.speed_potion) : 'N/A'}
+🔥 Ultimate Potion: ${historyStats ? formatNumber(historyStats.stats.ultimate_potion) : 'N/A'}
 `;
 
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
   try {
-    // If there was a message, editing it (it won't edit if u re-launch the bot)
-    if (lastMessageId) {
-      const editUrl = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`;
-      await axios.post(editUrl, {
-        chat_id: TELEGRAM_CHAT_ID,
-        message_id: lastMessageId, // Editing last message
-        text: message
-      });
-      console.log('✅ Message has been updated!');
-    } else {
-      // Sending message if it wasn't sent
-      const response = await axios.post(url, {
-        chat_id: TELEGRAM_CHAT_ID,
-        text: message
-      });
-      lastMessageId = response.data.result.message_id; // сохраняем message_id
-      console.log('✅ Message has been sent!');
-    }
+    await deletePreviousMessage();
+
+    const response = await axios.post(url, {
+      chat_id: TELEGRAM_CHAT_ID,
+      text: message
+    });
+    lastMessageId = response.data.result.message_id;
+    saveLastMessageId(lastMessageId); // Сохраняем новый message_id
+    console.log('✅ New message has been sent!');
   } catch (error) {
-    console.error('❌ Error while trying to send or edit message:', error.response ? error.response.data : error.message);
+    console.error('❌ Error while trying to send message:', error.response ? error.response.data : error.message);
   }
 };
+
+const stats = readStats();
+if (stats) {
+  saveCurrentStats(stats);
+  const currentStats = readCurrentStats();
+  const historyStats = readHistoryStats();
+  sendToTelegram(currentStats, historyStats);
+} else {
+  console.log('⚠️ No information to send on startup!');
+}
 
 setInterval(() => {
   const stats = readStats();
   if (stats) {
-    // Saving to the current_stats.json
     saveCurrentStats(stats);
-
-    // Getting our stats
-    const currentStats = readCurrentStats(); // From stats.json, gonna send every 5 minutes
-    const historyStats = readHistoryStats(); // Stats one hour ago
-
-    // Sending stats to the telegram
+    const currentStats = readCurrentStats();
+    const historyStats = readHistoryStats();
     sendToTelegram(currentStats, historyStats);
   } else {
     console.log('⚠️ No information to send!');
   }
-}, 300000); // Every 5 minutes
+}, 300000);
 
-// Launching interval to update history_stats every hour
 setInterval(() => {
   const currentStats = readCurrentStats();
   if (currentStats) {
-    // Saving stats history_stats.json
     saveHistoryStats(currentStats.stats);
   } else {
     console.log('⚠️ No information to save in history_stats!');
   }
-}, 3600000); // Every Hour 3600000 ms
+}, 3600000);
