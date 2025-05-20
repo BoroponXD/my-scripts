@@ -24,16 +24,19 @@ end
 
 local SCRIPT_URL = "https://raw.githubusercontent.com/BoroponXD/my-scripts/refs/heads/main/Jule's%20main"
 
-local success, err = pcall(function()
-    loadstring(game:HttpGet(SCRIPT_URL))()
+-- Delay the script execution by 3 seconds
+task.delay(3, function()
+    local success, err = pcall(function()
+        loadstring(game:HttpGet(SCRIPT_URL))()
+    end)
+
+    if not success then
+        warn("Error while loading AutoCollect:", err)
+    end
 end)
 
-if not success then
-    warn("Error while loading AutoCollect:", err)
-end
-
 if syn and syn.queue_on_teleport then
-    syn.queue_on_teleport(('loadstring(game:HttpGet("%s"))()'):format(SCRIPT_URL))
+    syn.queue_on_teleport(('task.delay(3, function() loadstring(game:HttpGet("%s"))() end)'):format(SCRIPT_URL))
 elseif queue_on_teleport then
-    queue_on_teleport(('loadstring(game:HttpGet("%s"))()'):format(SCRIPT_URL))
+    queue_on_teleport(('task.delay(3, function() loadstring(game:HttpGet("%s"))() end)'):format(SCRIPT_URL))
 end
