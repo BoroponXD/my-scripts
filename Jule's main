@@ -1,5 +1,5 @@
---AutoCollect Items Script (First Release)
---Here's 3 Function only
+--AutoCollect Items Script (Updated for Periodic Checks)
+--Checks items and gems every 5 seconds, with first check 5 seconds after script load
 local cloneref = cloneref or function(o) return o end
 COREGUI = cloneref(game:GetService("CoreGui"))
 Players = cloneref(game:GetService("Players"))
@@ -10,7 +10,7 @@ local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
 local HttpService = game:GetService("HttpService")
-local Stats = PlayerGui and PlayerGui:FindFirstChild("Stats")
+local Stats = playerGui and playerGui:FindFirstChild("Stats")
 local Main = Stats and Stats:FindFirstChild("Main")
 local EventLabel = Main and Main:FindFirstChild("Event")
 
@@ -340,22 +340,19 @@ local function createToggleButton(parent, text, settingKey, posY)
     button.BackgroundTransparency = 0.6
     button.BorderSizePixel = 2
 
-	local UICornerButton = Instance.new("UICorner", button)
+    local UICornerButton = Instance.new("UICorner", button)
     UICornerButton.CornerRadius = UDim.new(0, 8)
 
-    
     button.MouseButton1Click:Connect(function()
         settings[settingKey] = not settings[settingKey]
         button.Text = text .. ": " .. (settings[settingKey] and "Collect" or "Ignore")
-        
         button.BackgroundColor3 = settings[settingKey] and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
-        
         saveSettings()
     end)
 end
 
 createToggleButton(SettingsFrame, "Gem", "Gem", 0.15)
-createToggleButton(SettingsFrame, "Lucky Potion", "luck_potion", 0.34)
+createToggleButton(SettingsFrame, "Lucky Potion", "lucky_potion", 0.34)
 createToggleButton(SettingsFrame, "Speed Potion", "speed_potion", 0.53)
 createToggleButton(SettingsFrame, "Ultimate Potion", "ultimate_potion", 0.72)
 
@@ -408,7 +405,7 @@ end
 
 local function checkPotionsAndRejoin()
     while true do
-	    task.wait(1)
+        task.wait(1)
 
         local potionsFolder = workspace:FindFirstChild("Game") and workspace.Game:FindFirstChild("Potions")
         if potionsFolder then
@@ -438,7 +435,7 @@ local function checkPotionsAndRejoin()
                 end
 
                 if tick() - lastRejoinAttempt >= cooldown and _G.AutoRejoin_Enabled then
-					disableAutoFeatures()
+                    disableAutoFeatures()
                     if #Players:GetPlayers() <= 1 then
                         Players.LocalPlayer:Kick("\nRejoining...")
                         wait(0.1)
@@ -460,14 +457,14 @@ local spawnPosition = player.Character.HumanoidRootPart.Position
 
 local function checkPlayerPosition()
     while true do
-	    wait(1)
+        wait(1)
 
         local currentPosition = player.Character.HumanoidRootPart.Position
         local distance = (currentPosition - spawnPosition).Magnitude
         local heightDifference = currentPosition.Y - spawnPosition.Y
 
         if (heightDifference > 150 or heightDifference < -8 or distance > 800) and _G.AutoRejoin_Enabled then
-			disableAutoFeatures()
+            disableAutoFeatures()
             if #Players:GetPlayers() <= 1 then
                 Players.LocalPlayer:Kick("\nRejoining due to a bug detected...")
                 wait(0.1)
@@ -551,7 +548,7 @@ local function autoFlyToObject()
                     if part then
                         local dist = (LocalPlayer.Character.HumanoidRootPart.Position - part.Position).Magnitude
                         if dist < nearestDist then
-						    wait(0.1)
+                            wait(0.1)
                             nearestDist = dist
                             nearestObj = part
                         end
@@ -584,8 +581,6 @@ end
 
 task.spawn(autoActivatePrompt)
 task.spawn(autoFlyToObject)
-
-wait(5)
 
 local HttpService = game:GetService("HttpService")
 local LocalPlayer = game.Players.LocalPlayer
@@ -636,16 +631,16 @@ local function getInventoryStats()
                         if ultimatePotion then
                             local amountText = ultimatePotion:FindFirstChild("Button"):FindFirstChild("Amount"):FindFirstChild("AmountText")
                             if amountText then
-								local formattedText = string.gsub(amountText.Text, "[^%d]", "")
+                                local formattedText = string.gsub(amountText.Text, "[^%d]", "")
                                 stats.ultimate_potion = tonumber(formattedText) or 0
                             end
                         end
 
-                        local luckyPotion = scrollingFrame:FindFirstChild("luck_potion")
+                        local luckyPotion = scrollingFrame:FindFirstChild("lucky_potion")
                         if luckyPotion then
                             local amountText = luckyPotion:FindFirstChild("Button"):FindFirstChild("Amount"):FindFirstChild("AmountText")
                             if amountText then
-								local formattedText = string.gsub(amountText.Text, "[^%d]", "")
+                                local formattedText = string.gsub(amountText.Text, "[^%d]", "")
                                 stats.lucky_potion = tonumber(formattedText) or 0
                             end
                         end
@@ -654,7 +649,7 @@ local function getInventoryStats()
                         if speedPotion then
                             local amountText = speedPotion:FindFirstChild("Button"):FindFirstChild("Amount"):FindFirstChild("AmountText")
                             if amountText then
-								local formattedText = string.gsub(amountText.Text, "[^%d]", "")
+                                local formattedText = string.gsub(amountText.Text, "[^%d]", "")
                                 stats.speed_potion = tonumber(formattedText) or 0
                             end
                         end
@@ -706,4 +701,10 @@ local function saveStatsToFile()
     writefile("stats.json", encodedStats)
 end
 
-saveStatsToFile()
+task.spawn(function()
+    wait(5)
+    while true do
+        saveStatsToFile()
+        wait(5)
+    end
+end)
