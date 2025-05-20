@@ -22,7 +22,7 @@ if not game:IsLoaded() then
     msg:Destroy()
 end
 
-local SCRIPT_URL = "https://raw.githubusercontent.com/BoroponXD/my-scripts/refs/heads/main/Jule's%20main"
+local SCRIPT_URL = "https://raw.githubusercontent.com/BoroponXD/my-scripts/refs/heads/main/Jule's%20main1"
 
 task.delay(5, function()
     local success, err = pcall(function()
