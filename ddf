@@ -1,0 +1,910 @@
+-- Services
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+
+-- Table clone fallback for compatibility
+if not table.clone then
+    function table.clone(t)
+        local copy = {}
+        for k, v in pairs(t) do
+            if type(v) == "table" then
+                copy[k] = table.clone(v)
+            else
+                copy[k] = v
+            end
+        end
+        return copy
+    end
+end
+
+-- Constants
+local DEFAULT_SETTINGS = {
+    teamCheck = false,
+    fov = 80,
+    smoothing = 0.75,
+    predictionFactor = 0.03,
+    highlightEnabled = false,
+    lockPart = "Head",
+    aimbotEnabled = true,
+    ToggleKey = Enum.KeyCode.B,
+    SwitchPartKey = Enum.KeyCode.Z,
+    MenuToggleKey = Enum.KeyCode.K
+}
+
+-- Variables
+local settings = table.clone(DEFAULT_SETTINGS)
+local configs = {} -- Simulates file storage
+local currentConfig = "Default"
+local currentTarget = nil
+local renderConnection = nil
+local inputConnection = nil
+
+-- Simulated File Storage
+local function saveConfig(name)
+    local success, err = pcall(function()
+        local json = HttpService:JSONEncode(settings)
+        configs[name] = json
+        configs["CurrentConfig"] = json
+        print("Saved config:", name) -- Debug
+    end)
+    if not success then
+        warn("Failed to save config:", err)
+    end
+end
+
+local function loadConfig(name)
+    local success, result = pcall(function()
+        if configs[name] then
+            local decoded = HttpService:JSONDecode(configs[name])
+            -- Validate and fallback to default for keycodes
+            decoded.ToggleKey = decoded.ToggleKey or DEFAULT_SETTINGS.ToggleKey
+            decoded.SwitchPartKey = decoded.SwitchPartKey or DEFAULT_SETTINGS.SwitchPartKey
+            decoded.MenuToggleKey = decoded.MenuToggleKey or DEFAULT_SETTINGS.MenuToggleKey
+            print("Loaded config", name, ":", decoded) -- Debug
+            return decoded
+        end
+        print("Config", name, "not found") -- Debug
+        return nil
+    end)
+    if success and result then
+        return result
+    end
+    warn("Failed to load config", name, ":", result or "nil")
+    return nil
+end
+
+-- Initialize default config
+configs["Default"] = HttpService:JSONEncode(DEFAULT_SETTINGS)
+configs["CurrentConfig"] = HttpService:JSONEncode(DEFAULT_SETTINGS)
+
+-- UI Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = Players.LocalPlayer.PlayerGui
+ScreenGui.Enabled = false
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+print("ScreenGui created, Enabled:", ScreenGui.Enabled) -- Debug
+
+local MenuFrame = Instance.new("Frame")
+MenuFrame.Size = UDim2.new(0.125, 0, 0.3, 0)
+MenuFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+MenuFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MenuFrame.BorderSizePixel = 0
+MenuFrame.Parent = ScreenGui
+MenuFrame.ClipsDescendants = false
+print("MenuFrame created, Visible:", MenuFrame.Visible) -- Debug
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MenuFrame
+
+local ConfigFrame = Instance.new("Frame")
+ConfigFrame.Size = UDim2.new(1, 0, 1, 0)
+ConfigFrame.Position = UDim2.new(0.96, 0, 0, 0)
+ConfigFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ConfigFrame.BorderSizePixel = 0
+ConfigFrame.Parent = MenuFrame
+ConfigFrame.Visible = false
+
+local ConfigUICorner = Instance.new("UICorner")
+ConfigUICorner.CornerRadius = UDim.new(0, 8)
+ConfigUICorner.Parent = ConfigFrame
+
+-- Dragging Logic
+local dragging = false
+local dragStart = nil
+local menuStartPos = nil
+
+local function updateConfigFramePosition()
+    ConfigFrame.Position = UDim2.new(1, 0, 0, 0)
+end
+
+MenuFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        menuStartPos = MenuFrame.Position
+    end
+end)
+
+MenuFrame.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        local newPos = UDim2.new(
+            menuStartPos.X.Scale,
+            menuStartPos.X.Offset + delta.X,
+            menuStartPos.Y.Scale,
+            menuStartPos.Y.Offset + delta.Y
+        )
+        MenuFrame.Position = newPos
+        updateConfigFramePosition()
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- UI Elements
+local ConfigButton = Instance.new("TextButton")
+ConfigButton.Size = UDim2.new(0.95, 0, 0.08, 0)
+ConfigButton.Position = UDim2.new(0.025, 0, 0.15, 0)
+ConfigButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ConfigButton.Text = "Configs"
+ConfigButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ConfigButton.TextScaled = true
+ConfigButton.Parent = MenuFrame
+
+local ConfigButtonCorner = Instance.new("UICorner")
+ConfigButtonCorner.CornerRadius = UDim.new(0, 4)
+ConfigButtonCorner.Parent = ConfigButton
+
+local TabsFrame = Instance.new("Frame")
+TabsFrame.Size = UDim2.new(0.95, 0, 0.08, 0)
+TabsFrame.Position = UDim2.new(0.025, 0, 0.05, 0)
+TabsFrame.BackgroundTransparency = 1
+TabsFrame.Parent = MenuFrame
+
+local MainTabButton = Instance.new("TextButton")
+MainTabButton.Size = UDim2.new(0.48, 0, 1, 0)
+MainTabButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+MainTabButton.Text = "Main"
+MainTabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MainTabButton.TextScaled = true
+MainTabButton.Parent = TabsFrame
+
+local ControlsTabButton = Instance.new("TextButton")
+ControlsTabButton.Size = UDim2.new(0.48, 0, 1, 0)
+ControlsTabButton.Position = UDim2.new(0.52, 0, 0, 0)
+ControlsTabButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ControlsTabButton.Text = "Controls"
+ControlsTabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ControlsTabButton.TextScaled = true
+ControlsTabButton.Parent = TabsFrame
+
+local MainTabCorner = Instance.new("UICorner")
+MainTabCorner.CornerRadius = UDim.new(0, 4)
+MainTabCorner.Parent = MainTabButton
+
+local ControlsTabCorner = Instance.new("UICorner")
+ControlsTabCorner.CornerRadius = UDim.new(0, 4)
+ControlsTabCorner.Parent = ControlsTabButton
+
+local MainPage = Instance.new("Frame")
+MainPage.Size = UDim2.new(1, 0, 0.73, 0)
+MainPage.Position = UDim2.new(0, 0, 0.27, 0)
+MainPage.BackgroundTransparency = 1
+MainPage.Parent = MenuFrame
+
+local ControlsPage = Instance.new("Frame")
+ControlsPage.Size = UDim2.new(1, 0, 0.73, 0)
+ControlsPage.Position = UDim2.new(0, 0, 0.27, 0)
+ControlsPage.BackgroundTransparency = 1
+ControlsPage.Parent = MenuFrame
+ControlsPage.Visible = false
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, 0, 0.06, 0)
+StatusLabel.Position = UDim2.new(0, 0, 0, 0)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "Aimbot: " .. (settings.aimbotEnabled and "On" or "Off")
+StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+StatusLabel.TextScaled = true
+StatusLabel.Parent = MainPage
+
+local TargetLabel = Instance.new("TextLabel")
+TargetLabel.Size = UDim2.new(1, 0, 0.06, 0)
+TargetLabel.Position = UDim2.new(0, 0, 0.06, 0)
+TargetLabel.BackgroundTransparency = 1
+TargetLabel.Text = "Target: " .. (settings.lockPart == "Head" and "Head" or "Body")
+TargetLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+TargetLabel.TextScaled = true
+TargetLabel.Parent = MainPage
+
+-- Helper Functions
+local function createSlider(name, min, max, increment, default, callback)
+    local SliderFrame = Instance.new("Frame")
+    SliderFrame.Size = UDim2.new(0.95, 0, 0.1, 0)
+    SliderFrame.BackgroundTransparency = 1
+    SliderFrame.Parent = MainPage
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, 0, 0.5, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = name .. ": " .. string.format("%.2f", default)
+    Label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Label.TextScaled = true
+    Label.Parent = SliderFrame
+
+    local SliderBar = Instance.new("Frame")
+    SliderBar.Size = UDim2.new(1, 0, 0.2, 0)
+    SliderBar.Position = UDim2.new(0, 0, 0.6, 0)
+    SliderBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    SliderBar.Parent = SliderFrame
+
+    local SliderButton = Instance.new("TextButton")
+    SliderButton.Size = UDim2.new(0, 10, 0, 10)
+    SliderButton.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    SliderButton.Text = ""
+    SliderButton.Parent = SliderBar
+
+    local UICornerBar = Instance.new("UICorner")
+    UICornerBar.CornerRadius = UDim.new(0, 2)
+    UICornerBar.Parent = SliderBar
+
+    local UICornerButton = Instance.new("UICorner")
+    UICornerButton.CornerRadius = UDim.new(0, 5)
+    UICornerButton.Parent = SliderButton
+
+    local function waitForRender()
+        local maxAttempts = 50
+        local attempts = 0
+        while attempts < maxAttempts do
+            if SliderBar and SliderBar.AbsoluteSize and SliderBar.AbsoluteSize.X > 0 then
+                return true
+            end
+            attempts = attempts + 1
+            RunService.RenderStepped:Wait()
+        end
+        warn("Failed to render SliderBar for " .. name)
+        return false
+    end
+
+    local function updateSlider(input)
+        if not waitForRender() then return end
+        local barSize = SliderBar.AbsoluteSize.X
+        local mouseX = input.Position.X - SliderBar.AbsolutePosition.X
+        local percentage = math.clamp(mouseX / barSize, 0, 1)
+        local value = min + (max - min) * percentage
+        value = math.floor(value / increment + 0.5) * increment
+        SliderButton.Position = UDim2.new(percentage, -5, 0, -2.5)
+        Label.Text = name .. ": " .. string.format("%.2f", value)
+        callback(value)
+    end
+
+    local function setValue(value)
+        if not waitForRender() then return end
+        local percentage = (value - min) / (max - min)
+        SliderButton.Position = UDim2.new(percentage, -5, 0, -2.5)
+        Label.Text = name .. ": " .. string.format("%.2f", value)
+        callback(value)
+    end
+
+    SliderButton.MouseButton1Down:Connect(function()
+        local connection
+        connection = UserInputService.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement then
+                updateSlider(input)
+            end
+        end)
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                connection:Disconnect()
+            end
+        end)
+    end)
+
+    task.defer(function()
+        setValue(default)
+    end)
+
+    return SliderFrame, setValue
+end
+
+local function createKeybindControl(name, key, callback)
+    local ControlFrame = Instance.new("Frame")
+    ControlFrame.Size = UDim2.new(0.95, 0, 0.08, 0)
+    ControlFrame.BackgroundTransparency = 1
+    ControlFrame.Parent = ControlsPage
+
+    local KeybindButton = Instance.new("TextButton")
+    KeybindButton.Size = UDim2.new(0.3, 0, 1, 0)
+    KeybindButton.Position = UDim2.new(0.7, 0, 0, 0)
+    KeybindButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    local keyName = key and tostring(key):split(".")[3] or "None"
+    KeybindButton.Text = keyName
+    KeybindButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    KeybindButton.TextScaled = true
+    KeybindButton.Parent = ControlFrame
+
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 4)
+    UICorner.Parent = KeybindButton
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(0.65, 0, 1, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = name
+    Label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Label.TextScaled = true
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = ControlFrame
+
+    KeybindButton.MouseButton1Click:Connect(function()
+        KeybindButton.Text = "Press a key..."
+        local connection
+        connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if not gameProcessed and input.UserInputType == Enum.UserInputType.Keyboard then
+                local newKey = input.KeyCode
+                local newKeyName = tostring(newKey):split(".")[3] or "None"
+                KeybindButton.Text = newKeyName
+                callback(newKey)
+                connection:Disconnect()
+            end
+        end)
+    end)
+
+    return ControlFrame, KeybindButton
+end
+
+-- Create Sliders
+local FOVSlider, setFOVValue = createSlider("FOV", 10, 160, 1, settings.fov, function(value)
+    settings.fov = value
+    saveConfig(currentConfig)
+end)
+FOVSlider.Position = UDim2.new(0.025, 0, 0.15, 0)
+
+local SmoothingSlider, setSmoothingValue = createSlider("Smoothing", 0, 1, 0.01, settings.smoothing, function(value)
+    settings.smoothing = value
+    saveConfig(currentConfig)
+end)
+SmoothingSlider.Position = UDim2.new(0.025, 0, 0.3, 0)
+
+local PredictionSlider, setPredictionValue = createSlider("Prediction", 0, 1, 0.01, settings.predictionFactor, function(value)
+    settings.predictionFactor = value
+    saveConfig(currentConfig)
+end)
+PredictionSlider.Position = UDim2.new(0.025, 0, 0.45, 0)
+
+-- Create Buttons
+local MainResetButton = Instance.new("TextButton")
+MainResetButton.Size = UDim2.new(0.95, 0, 0.1, 0)
+MainResetButton.Position = UDim2.new(0.025, 0, 0.6, 0)
+MainResetButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+MainResetButton.Text = "Reset Main Settings"
+MainResetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MainResetButton.TextScaled = true
+MainResetButton.Parent = MainPage
+
+local MainResetUICorner = Instance.new("UICorner")
+MainResetUICorner.CornerRadius = UDim.new(0, 4)
+MainResetUICorner.Parent = MainResetButton
+
+local ControlsResetButton = Instance.new("TextButton")
+ControlsResetButton.Size = UDim2.new(0.95, 0, 0.1, 0)
+ControlsResetButton.Position = UDim2.new(0.025, 0, 0.55, 0)
+ControlsResetButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ControlsResetButton.Text = "Reset Controls"
+ControlsResetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ControlsResetButton.TextScaled = true
+ControlsResetButton.Parent = ControlsPage
+
+local ControlsResetUICorner = Instance.new("UICorner")
+ControlsResetUICorner.CornerRadius = UDim.new(0, 4)
+ControlsResetUICorner.Parent = ControlsResetButton
+
+local RejoinButton = Instance.new("TextButton")
+RejoinButton.Size = UDim2.new(0.95, 0, 0.1, 0)
+RejoinButton.Position = UDim2.new(0.025, 0, 0.74, 0)
+RejoinButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+RejoinButton.Text = "Rejoin"
+RejoinButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+RejoinButton.TextScaled = true
+RejoinButton.Parent = MainPage
+
+local RejoinUICorner = Instance.new("UICorner")
+RejoinUICorner.CornerRadius = UDim.new(0, 4)
+RejoinUICorner.Parent = RejoinButton
+
+local RemoveButton = Instance.new("TextButton")
+RemoveButton.Size = UDim2.new(0.95, 0, 0.1, 0)
+RemoveButton.Position = UDim2.new(0.025, 0, 0.88, 0)
+RemoveButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+RemoveButton.Text = "Remove Script"
+RemoveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+RemoveButton.TextScaled = true
+RemoveButton.Parent = MainPage
+
+local RemoveUICorner = Instance.new("UICorner")
+RemoveUICorner.CornerRadius = UDim.new(0, 4)
+RemoveUICorner.Parent = RemoveButton
+
+-- Create Keybind Controls
+local AimbotToggleControl, AimbotToggleButton = createKeybindControl("Toggle Aimbot", settings.ToggleKey, function(key)
+    settings.ToggleKey = key
+    saveConfig(currentConfig)
+end)
+AimbotToggleControl.Position = UDim2.new(0.025, 0, 0.1, 0)
+
+local SwitchTargetControl, SwitchTargetButton = createKeybindControl("Switch Target", settings.SwitchPartKey, function(key)
+    settings.SwitchPartKey = key
+    saveConfig(currentConfig)
+end)
+SwitchTargetControl.Position = UDim2.new(0.025, 0, 0.25, 0)
+
+local MenuToggleControl, MenuToggleButton = createKeybindControl("Toggle Menu", settings.MenuToggleKey, function(key)
+    settings.MenuToggleKey = key
+    saveConfig(currentConfig)
+end)
+MenuToggleControl.Position = UDim2.new(0.025, 0, 0.4, 0)
+
+-- Config Frame Elements
+local ConfigTitle = Instance.new("TextLabel")
+ConfigTitle.Size = UDim2.new(0.8, 0, 0.08, 0)
+ConfigTitle.Position = UDim2.new(0.1, 0, 0, 0)
+ConfigTitle.BackgroundTransparency = 1
+ConfigTitle.Text = "Configurations"
+ConfigTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+ConfigTitle.TextScaled = true
+ConfigTitle.Font = Enum.Font.SourceSansBold
+ConfigTitle.Parent = ConfigFrame
+
+local ConfigNameInput = Instance.new("TextBox")
+ConfigNameInput.Size = UDim2.new(0.95, 0, 0.1, 0)
+ConfigNameInput.Position = UDim2.new(0.025, 0, 0.1, 0)
+ConfigNameInput.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ConfigNameInput.Text = "Config Name"
+ConfigNameInput.TextColor3 = Color3.fromRGB(200, 200, 200)
+ConfigNameInput.TextScaled = true
+ConfigNameInput.Parent = ConfigFrame
+
+local ConfigNameInputCorner = Instance.new("UICorner")
+ConfigNameInputCorner.CornerRadius = UDim.new(0, 4)
+ConfigNameInputCorner.Parent = ConfigNameInput
+
+local AddConfigButton = Instance.new("TextButton")
+AddConfigButton.Size = UDim2.new(0.95, 0, 0.1, 0)
+AddConfigButton.Position = UDim2.new(0.025, 0, 0.22, 0)
+AddConfigButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+AddConfigButton.Text = "Add"
+AddConfigButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+AddConfigButton.TextScaled = true
+AddConfigButton.Parent = ConfigFrame
+
+local AddConfigCorner = Instance.new("UICorner")
+AddConfigCorner.CornerRadius = UDim.new(0, 4)
+AddConfigCorner.Parent = AddConfigButton
+
+local ConfigListFrame = Instance.new("ScrollingFrame")
+ConfigListFrame.Size = UDim2.new(0.9, 0, 0.62, 0)
+ConfigListFrame.Position = UDim2.new(0.06, 0, 0.35, 0)
+ConfigListFrame.BackgroundTransparency = 1
+ConfigListFrame.Parent = ConfigFrame
+ConfigListFrame.AutomaticCanvasSize = "Y"
+ConfigListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ConfigListFrame.ScrollBarThickness = 0
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.SortOrder = Enum.SortOrder.Name
+UIListLayout.Parent = ConfigListFrame
+
+-- Config Management
+local function updateConfigList()
+    for _, child in pairs(ConfigListFrame:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+
+    local configNames = {}
+    for name in pairs(configs) do
+        if name ~= "CurrentConfig" then
+            table.insert(configNames, name)
+        end
+    end
+    table.sort(configNames)
+
+    for _, name in ipairs(configNames) do
+        local ConfigEntry = Instance.new("Frame")
+        ConfigEntry.Size = UDim2.new(1, 0, 0.18, 0)
+        ConfigEntry.BackgroundTransparency = 1
+        ConfigEntry.Name = name
+        ConfigEntry.Parent = ConfigListFrame
+
+        local ConfigLabel = Instance.new("TextLabel")
+        ConfigLabel.Size = UDim2.new(0.4, 0, 1, 0)
+        ConfigLabel.BackgroundTransparency = 1
+        ConfigLabel.Text = name
+        ConfigLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        ConfigLabel.TextScaled = true
+        ConfigLabel.TextXAlignment = Enum.TextXAlignment.Left
+        ConfigLabel.Parent = ConfigEntry
+
+        local LoadButton = Instance.new("TextButton")
+        LoadButton.Size = UDim2.new(0.18, 0, 1, 0)
+        LoadButton.Position = UDim2.new(0.42, 0, 0, 0)
+        LoadButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        LoadButton.Text = "Load"
+        LoadButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        LoadButton.TextScaled = true
+        LoadButton.Parent = ConfigEntry
+
+        local LoadCorner = Instance.new("UICorner")
+        LoadCorner.CornerRadius = UDim.new(0, 4)
+        LoadCorner.Parent = LoadButton
+
+        local DeleteButton = Instance.new("TextButton")
+        DeleteButton.Size = UDim2.new(0.18, 0, 1, 0)
+        DeleteButton.Position = UDim2.new(0.62, 0, 0, 0)
+        DeleteButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        DeleteButton.Text = "Delete"
+        DeleteButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        DeleteButton.TextScaled = true
+        DeleteButton.Parent = ConfigEntry
+
+        local DeleteCorner = Instance.new("UICorner")
+        DeleteCorner.CornerRadius = UDim.new(0, 4)
+        DeleteCorner.Parent = DeleteButton
+
+        local RenameButton = Instance.new("TextButton")
+        RenameButton.Size = UDim2.new(0.18, 0, 1, 0)
+        RenameButton.Position = UDim2.new(0.82, 0, 0, 0)
+        RenameButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        RenameButton.Text = "Rename"
+        RenameButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        RenameButton.TextScaled = true
+        RenameButton.Parent = ConfigEntry
+
+        local RenameCorner = Instance.new("UICorner")
+        RenameCorner.CornerRadius = UDim.new(0, 4)
+        RenameCorner.Parent = RenameButton
+
+        LoadButton.MouseButton1Click:Connect(function()
+            local loadedSettings = loadConfig(name)
+            if loadedSettings then
+                currentConfig = name
+                settings = table.clone(loadedSettings)
+                setFOVValue(settings.fov or DEFAULT_SETTINGS.fov)
+                setSmoothingValue(settings.smoothing or DEFAULT_SETTINGS.smoothing)
+                setPredictionValue(settings.predictionFactor or DEFAULT_SETTINGS.predictionFactor)
+                StatusLabel.Text = "Aimbot: " .. (settings.aimbotEnabled and "On" or "Off")
+                TargetLabel.Text = "Target: " .. (settings.lockPart == "Head" and "Head" or "Body")
+                AimbotToggleButton.Text = tostring(settings.ToggleKey):split(".")[3] or "None"
+                SwitchTargetButton.Text = tostring(settings.SwitchPartKey):split(".")[3] or "None"
+                MenuToggleButton.Text = tostring(settings.MenuToggleKey):split(".")[3] or "None"
+                saveConfig(currentConfig)
+                StarterGui:SetCore("SendNotification", {
+                    Title = "Config Loaded",
+                    Text = "Loaded: " .. name,
+                    Duration = 3
+                })
+            end
+        end)
+
+        DeleteButton.MouseButton1Click:Connect(function()
+            if name ~= "Default" then
+                configs[name] = nil
+                if currentConfig == name then
+                    currentConfig = "Default"
+                    local defaultSettings = loadConfig("Default")
+                    if defaultSettings then
+                        settings = table.clone(defaultSettings)
+                        saveConfig("CurrentConfig")
+                    end
+                end
+                updateConfigList()
+            else
+                StarterGui:SetCore("SendNotification", {
+                    Title = "Error",
+                    Text = "Cannot delete Default config",
+                    Duration = 3
+                })
+            end
+        end)
+
+        RenameButton.MouseButton1Click:Connect(function()
+            local RenameInput = Instance.new("TextBox")
+            RenameInput.Size = UDim2.new(0.4, 0, 1, 0)
+            RenameInput.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            RenameInput.Text = name
+            RenameInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+            RenameInput.TextScaled = true
+            RenameInput.Parent = ConfigEntry
+
+            local RenameInputCorner = Instance.new("UICorner")
+            RenameInputCorner.CornerRadius = UDim.new(0, 4)
+            RenameInputCorner.Parent = RenameInput
+
+            ConfigLabel.Visible = false
+
+            RenameInput.FocusLost:Connect(function(enterPressed)
+                if enterPressed then
+                    local newName = RenameInput.Text
+                    if newName ~= "" and not configs[newName] and newName ~= "Default" and newName ~= "CurrentConfig" then
+                        configs[newName] = configs[name]
+                        configs[name] = nil
+                        if currentConfig == name then
+                            currentConfig = newName
+                            saveConfig(currentConfig)
+                        end
+                        updateConfigList()
+                    else
+                        StarterGui:SetCore("SendNotification", {
+                            Title = "Error",
+                            Text = "Invalid name or name already exists",
+                            Duration = 3
+                        })
+                    end
+                end
+                RenameInput:Destroy()
+                ConfigLabel.Visible = true
+            end)
+        end)
+    end
+end
+
+AddConfigButton.MouseButton1Click:Connect(function()
+    local configName = ConfigNameInput.Text
+    if configName ~= "" and not configs[configName] and configName ~= "Default" and configName ~= "CurrentConfig" then
+        saveConfig(configName)
+        currentConfig = configName
+        saveConfig("CurrentConfig")
+        updateConfigList()
+        ConfigNameInput.Text = "Config Name"
+        StarterGui:SetCore("SendNotification", {
+            Title = "Config Created",
+            Text = "Created: " .. configName,
+            Duration = 3
+        })
+    else
+        StarterGui:SetCore("SendNotification", {
+            Title = "Error",
+            Text = "Config name already exists or is invalid",
+            Duration = 3
+        })
+    end
+end)
+
+-- Tab Switching
+ConfigButton.MouseButton1Click:Connect(function()
+    ConfigFrame.Visible = not ConfigFrame.Visible
+    updateConfigList()
+end)
+
+MainTabButton.MouseButton1Click:Connect(function()
+    MainPage.Visible = true
+    ControlsPage.Visible = false
+    MainTabButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    ControlsTabButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+end)
+
+ControlsTabButton.MouseButton1Click:Connect(function()
+    MainPage.Visible = false
+    ControlsPage.Visible = true
+    MainTabButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    ControlsTabButton.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+end)
+
+-- Button Functionality
+MainResetButton.MouseButton1Click:Connect(function()
+    settings.fov = DEFAULT_SETTINGS.fov
+    settings.smoothing = DEFAULT_SETTINGS.smoothing
+    settings.predictionFactor = DEFAULT_SETTINGS.predictionFactor
+    settings.aimbotEnabled = DEFAULT_SETTINGS.aimbotEnabled
+    settings.lockPart = DEFAULT_SETTINGS.lockPart
+    setFOVValue(settings.fov)
+    setSmoothingValue(settings.smoothing)
+    setPredictionValue(settings.predictionFactor)
+    StatusLabel.Text = "Aimbot: " .. (settings.aimbotEnabled and "On" or "Off")
+    TargetLabel.Text = "Target: " .. (settings.lockPart == "Head" and "Head" or "Body")
+    saveConfig(currentConfig)
+    StarterGui:SetCore("SendNotification", {
+        Title = "Main Settings Reset",
+        Text = "Main settings restored to default",
+        Duration = 3
+    })
+end)
+
+ControlsResetButton.MouseButton1Click:Connect(function()
+    settings.ToggleKey = DEFAULT_SETTINGS.ToggleKey
+    settings.SwitchPartKey = DEFAULT_SETTINGS.SwitchPartKey
+    settings.MenuToggleKey = DEFAULT_SETTINGS.MenuToggleKey
+    AimbotToggleButton.Text = tostring(settings.ToggleKey):split(".")[3] or "None"
+    SwitchTargetButton.Text = tostring(settings.SwitchPartKey):split(".")[3] or "None"
+    MenuToggleButton.Text = tostring(settings.MenuToggleKey):split(".")[3] or "None"
+    saveConfig(currentConfig)
+    StarterGui:SetCore("SendNotification", {
+        Title = "Controls Reset",
+        Text = "Control settings restored to default",
+        Duration = 3
+    })
+end)
+
+RejoinButton.MouseButton1Click:Connect(function()
+    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Players.LocalPlayer)
+end)
+
+-- Cleanup Function
+local function cleanup()
+    if renderConnection then
+        renderConnection:Disconnect()
+        renderConnection = nil
+    end
+    if inputConnection then
+        inputConnection:Disconnect()
+        inputConnection = nil
+    end
+    if ScreenGui then
+        ScreenGui:Destroy()
+        ScreenGui = nil
+    end
+    currentTarget = nil
+    configs = nil
+    settings = nil
+end
+
+RemoveButton.MouseButton1Click:Connect(function()
+    cleanup()
+end)
+
+-- Aimbot Logic
+local function getClosest(cframe)
+    local ray = Ray.new(cframe.Position, cframe.LookVector).Unit
+    local target = nil
+    local mag = math.huge
+    local screenCenter = workspace.CurrentCamera.ViewportSize / 2
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player.Character and player.Character:FindFirstChild(settings.lockPart) and player.Character:FindFirstChild("Humanoid") and player.Character:FindFirstChild("Humanoid").Health ~= 0 and player.Character:FindFirstChild("HumanoidRootPart") and player ~= Players.LocalPlayer and (player.Team ~= Players.LocalPlayer.Team and player.Team ~= nil or not settings.teamCheck) then
+            local screenPoint, onScreen = workspace.CurrentCamera:WorldToViewportPoint(player.Character[settings.lockPart].Position)
+            local distanceFromCenter = (Vector2.new(screenPoint.X, screenPoint.Y) - screenCenter).Magnitude
+
+            if onScreen and distanceFromCenter <= settings.fov then
+                local magBuf = (player.Character[settings.lockPart].Position - ray:ClosestPoint(player.Character[settings.lockPart].Position)).Magnitude
+
+                if magBuf < mag then
+                    mag = magBuf
+                    target = player
+                end
+            end
+        end
+    end
+
+    return target
+end
+
+local function highlightTarget(target)
+    if settings.highlightEnabled and target and target.Character then
+        local highlight = Instance.new("Highlight")
+        highlight.Adornee = target.Character
+        highlight.FillColor = Color3.fromRGB(255, 128, 128)
+        highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+        highlight.Parent = target.Character
+    end
+end
+
+local function removeHighlight(target)
+    if settings.highlightEnabled and target and target.Character and target.Character:FindFirstChildOfClass("Highlight") then
+        target.Character:FindFirstChildOfClass("Highlight"):Destroy()
+    end
+end
+
+local function predictPosition(target)
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        local velocity = target.Character.HumanoidRootPart.Velocity
+        local position = target.Character[settings.lockPart].Position
+        local predictedPosition = position + (velocity * settings.predictionFactor)
+        return predictedPosition
+    end
+    return nil
+end
+
+local function switchLockPart()
+    settings.lockPart = settings.lockPart == "Head" and "HumanoidRootPart" or "Head"
+    TargetLabel.Text = "Target: " .. (settings.lockPart == "Head" and "Head" or "Body")
+    saveConfig(currentConfig)
+    if not ScreenGui.Enabled then
+        StarterGui:SetCore("SendNotification", {
+            Title = "Lock Part Switched",
+            Text = "Now targeting: " .. (settings.lockPart == "Head" and "Head" or "Body"),
+            Duration = 3
+        })
+    end
+end
+
+-- Input Handling
+inputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+
+    -- Validate MenuToggleKey before comparison
+    if not settings.MenuToggleKey or type(settings.MenuToggleKey) ~= "userdata" or settings.MenuToggleKey == Enum.KeyCode.Unknown then
+        warn("Invalid MenuToggleKey, resetting to default:", DEFAULT_SETTINGS.MenuToggleKey)
+        settings.MenuToggleKey = DEFAULT_SETTINGS.MenuToggleKey
+    end
+
+    if input.KeyCode == settings.MenuToggleKey then
+        ScreenGui.Enabled = not ScreenGui.Enabled
+    elseif input.KeyCode == settings.ToggleKey then
+        settings.aimbotEnabled = not settings.aimbotEnabled
+        StatusLabel.Text = "Aimbot: " .. (settings.aimbotEnabled and "On" or "Off")
+        saveConfig(currentConfig)
+        if not ScreenGui.Enabled then
+            StarterGui:SetCore("SendNotification", {
+                Title = "Aimbot",
+                Text = settings.aimbotEnabled and "Enabled" or "Disabled",
+                Duration = 3
+            })
+        end
+    elseif input.KeyCode == settings.SwitchPartKey then
+        switchLockPart()
+    end
+end)
+
+-- Render Loop
+renderConnection = RunService.RenderStepped:Connect(function()
+    if not settings.aimbotEnabled or not UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+        if currentTarget and settings.highlightEnabled then
+            removeHighlight(currentTarget)
+        end
+        currentTarget = nil
+        return
+    end
+
+    local cam = workspace.CurrentCamera
+    currentTarget = getClosest(cam.CFrame)
+
+    if currentTarget then
+        highlightTarget(currentTarget)
+        local predictedPosition = predictPosition(currentTarget)
+        if predictedPosition then
+            workspace.CurrentCamera.CFrame = workspace.CurrentCamera.CFrame:Lerp(CFrame.new(cam.CFrame.Position, predictedPosition), settings.smoothing)
+        end
+    end
+end)
+
+-- Initial Notification
+StarterGui:SetCore("SendNotification", {
+    Title = "Aimbot Menu",
+    Text = "U - Open GUI",
+    Duration = 3
+})
+
+-- Load CurrentConfig on startup
+local currentConfigSettings = loadConfig("CurrentConfig")
+if currentConfigSettings then
+    settings = table.clone(currentConfigSettings)
+else
+    warn("Failed to load CurrentConfig, using DEFAULT_SETTINGS")
+    settings = table.clone(DEFAULT_SETTINGS)
+end
+-- Ensure keycodes are valid after loading
+settings.ToggleKey = settings.ToggleKey or DEFAULT_SETTINGS.ToggleKey
+settings.SwitchPartKey = settings.SwitchPartKey or DEFAULT_SETTINGS.SwitchPartKey
+settings.MenuToggleKey = settings.MenuToggleKey or DEFAULT_SETTINGS.MenuToggleKey
+setFOVValue(settings.fov or DEFAULT_SETTINGS.fov)
+setSmoothingValue(settings.smoothing or DEFAULT_SETTINGS.smoothing)
+setPredictionValue(settings.predictionFactor or DEFAULT_SETTINGS.predictionFactor)
+StatusLabel.Text = "Aimbot: " .. (settings.aimbotEnabled and "On" or "Off")
+TargetLabel.Text = "Target: " .. (settings.lockPart == "Head" and "Head" or "Body")
+AimbotToggleButton.Text = tostring(settings.ToggleKey):split(".")[3] or "None"
+SwitchTargetButton.Text = tostring(settings.SwitchPartKey):split(".")[3] or "None"
+MenuToggleButton.Text = tostring(settings.MenuToggleKey):split(".")[3] or "None"
+
+-- Initialize config list
+updateConfigList()
